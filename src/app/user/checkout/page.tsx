@@ -1,0 +1,510 @@
+"use client"
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from "motion/react"
+import { AlertCircle, ArrowRight, Bike, Car, CheckCircle, Clock, CreditCard, Loader2, LucideIcon, MapPin, Navigation, PhoneCall, Shield, Star, Truck, XCircle } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import axios, { AxiosError } from 'axios'
+
+const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
+  car:        { label: "Voiture", Icon: Car   },
+  motorcycle: { label: "Moto",    Icon: Bike  },
+  scooter:    { label: "Scooter", Icon: Bike  },
+  vélo:       { label: "Vélo",    Icon: Bike  },
+  truck:      { label: "Camion",  Icon: Truck },
+  bus:        { label: "Bus",     Icon: Truck },
+  van:        { label: "Van",     Icon: Truck },
+  other:      { label: "Autre",   Icon: Car   },
+}
+
+type Status = "idle" | "requested" | "awaiting_payment" | "confirmed" | "started" | "completed" | "cancelled" | "rejected" | "expired"
+
+const ACTIVE_STATUSES: Status[] = ["requested", "awaiting_payment", "confirmed", "started"]
+
+function CheckoutContent() {
+  const params = useSearchParams()
+  const pickup     = params.get("pickup")   || ""
+  const drop       = params.get("drop")     || ""
+  const mobile     = params.get("mobile")
+  const vehicle    = params.get("vehicle")  || ""
+  const fare       = params.get("fare")     || ""
+  const pickUpLat  = Number(params.get("pickUpLat"))
+  const pickUpLong = Number(params.get("pickUpLong"))
+  const dropLat    = Number(params.get("dropLat"))
+  const dropLong   = Number(params.get("dropLong"))
+
+  const saved = useMemo(() => {
+    if (typeof window === "undefined") return {}
+    try { return JSON.parse(sessionStorage.getItem("selectedVehicle") ?? "{}") }
+    catch { return {} }
+  }, [])
+
+  const driverId  = params.get("driverId")  || saved.driverId  || ""
+  const vehicleId = params.get("vehicleId") || saved.vehicleId || ""
+  const { Icon }  = VEHICLE_META[vehicle] ?? { Icon: Car }
+
+  const [status,      setStatus]      = useState<Status>("idle")
+  const [bookingId,   setBookingId]   = useState<string | null>(null)
+  const [loading,     setLoading]     = useState(false)
+  const [initializing,setInitializing]= useState(true)
+  const [error,       setError]       = useState<string | null>(null)
+
+  // Fetch active booking once on mount
+  useEffect(() => {
+    axios.get("/api/booking/active")
+      .then(({ data }) => {
+        if (data.booking) {
+          setBookingId(data.booking._id)
+          setStatus(data.booking.bookingStatus as Status)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setInitializing(false))
+  }, [])
+
+  // Poll every 3s while booking is in an active state
+  useEffect(() => {
+    if (!ACTIVE_STATUSES.includes(status)) return
+    const id = setInterval(() => {
+      axios.get("/api/booking/active")
+        .then(({ data }) => {
+          if (data.booking) {
+            setBookingId(data.booking._id)
+            setStatus(data.booking.bookingStatus as Status)
+          } else {
+            setStatus("idle")
+            setBookingId(null)
+          }
+        })
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(id)
+  }, [status])
+
+  const handleRequest = async () => {
+    if (!driverId || !vehicleId) {
+      setError("Informations du véhicule manquantes. Retournez à la sélection.")
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const { data } = await axios.post("/api/booking/create", {
+        driverId,
+        vehicleId,
+        pickUpAddress:  pickup,
+        dropAddress:    drop,
+        pickUpLocation: { type: "Point", coordinates: [pickUpLong, pickUpLat] },
+        dropLocation:   { type: "Point", coordinates: [dropLong,   dropLat]  },
+        fare:           Number(fare),
+        mobileNumber:   mobile,
+      }, { timeout: 10000 })
+      setBookingId(data._id)
+      setStatus((data.bookingStatus ?? "requested") as Status)
+    } catch (err) {
+      if (err instanceof AxiosError)
+        setError(err.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    try {
+      await axios.post(`/api/booking/${bookingId}/cancel`)
+      setStatus("idle")
+      setBookingId(null)
+    } catch {
+      setError("Impossible d'annuler la réservation.")
+    }
+  }
+
+  const handleReset = () => {
+    setStatus("idle")
+    setBookingId(null)
+    setError(null)
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-100 px-4 py-12">
+      <div className="relative max-w-6xl mx-auto z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-10"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-px w-8 bg-zinc-900" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Réservation</span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tight text-zinc-900">Vérification</h1>
+          <p className="text-zinc-400 text-sm mt-1.5 font-medium">Vérifiez votre trajet et confirmez.</p>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+
+          {/* Résumé du trajet */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.07)]"
+          >
+            <div className="h-1 bg-zinc-900" />
+            <div className="p-8 sm:p-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Véhicule sélectionné</div>
+                  <div className="text-3xl font-black tracking-tight text-zinc-900">
+                    {VEHICLE_META[vehicle]?.label ?? vehicle}
+                    </div>
+                </div>
+                <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Icon size={28} className="text-white" />
+                </div>
+              </div>
+
+              <div className="bg-zinc-50 border border-zinc-100 rounded-2xl overflow-hidden mb-2">
+                <div className="flex gap-4 px-5 py-4 border-b border-zinc-100">
+                  <div className="flex flex-col items-center shrink-0 pt-0.5">
+                    <div className="w-3 h-3 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
+                    <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 12 }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-0.5">Point de départ</div>
+                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{pickup}</div>
+                  </div>
+                  <MapPin size={14} className="text-zinc-400 shrink-0 mt-1" />
+                </div>
+                <div className="flex gap-4 px-5 py-4">
+                  <div className="flex flex-col items-center shrink-0 pt-0.5">
+                    <div className="w-3 h-3 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-0.5">Point d&apos;arrivée</div>
+                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{drop}</div>
+                  </div>
+                  <Navigation size={14} className="text-zinc-400 shrink-0 mt-1" />
+                </div>
+              </div>
+
+              <div className="flex items-end justify-between pt-6 border-t border-zinc-100">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Tarif total</p>
+                  <p className="text-zinc-400 text-xs font-medium">Comprend les frais de base et de distance</p>
+                </div>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                  className="flex items-baseline gap-2"
+                >
+                  <span className="text-zinc-400 text-lg font-black">MAD</span>
+                  <span className="text-zinc-900 text-4xl font-black tracking-tight leading-none">{fare}</span>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Panneau d'action */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.07)] flex flex-col"
+          >
+            <div className="h-1 bg-zinc-900" />
+            <div className="flex-1 p-8 sm:p-10 flex flex-col">
+
+              {initializing ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="w-8 h-8 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+
+                  {status === "idle" && (
+                    <motion.div
+                      key="idle"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 12 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-col flex-1 justify-between"
+                    >
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Prêt à partir</p>
+                        <h3 className="text-2xl font-black text-zinc-900 mb-6">Confirmez votre trajet</h3>
+                        <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-5 space-y-2">
+                          {[
+                            { icon: <Clock size={14} />,      text: "Le conducteur répondra dans les 2 minutes" },
+                            { icon: <Shield size={14} />,     text: "Uniquement des conducteurs assurés" },
+                            { icon: <CreditCard size={14} />, text: "Payez après acceptation du conducteur" },
+                          ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-xl bg-zinc-200 flex items-center justify-center text-zinc-600 shrink-0">{item.icon}</div>
+                              <p className="text-zinc-500 text-xs font-medium">{item.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {error && (
+                          <div className="mt-4 flex items-center gap-2 text-red-500 text-xs font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                            <AlertCircle size={13} className="shrink-0" />{error}
+                          </div>
+                        )}
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: loading ? 1 : 1.02 }}
+                        onClick={handleRequest}
+                        disabled={loading}
+                        className="w-full h-14 mt-8 bg-zinc-900 hover:bg-black disabled:opacity-40
+                        text-white font-black text-sm rounded-2xl flex items-center justify-center
+                        gap-2.5 transition-colors shadow-md"
+                      >
+                        {loading
+                          ? <Loader2 size={18} className="animate-spin" />
+                          : <><span>Demander un trajet</span><ArrowRight size={15} /></>
+                        }
+                      </motion.button>
+                    </motion.div>
+                  )}
+
+                  {status === "requested" && (
+                    <motion.div
+                      key="requested"
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-6 text-center"
+                    >
+                      <div className="relative">
+                        <motion.div
+                          animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="absolute inset-0 rounded-full bg-zinc-900"
+                        />
+                        <div className="relative w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center">
+                          <Loader2 size={28} className="text-zinc-900 animate-spin" />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Recherche d&apos;un conducteur</h3>
+                        <p className="text-zinc-400 text-sm font-medium">En attente que le chauffeur accepte...</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleCancel}
+                        className="flex items-center gap-2 text-xs font-bold text-zinc-400
+                        hover:text-zinc-900 transition-colors border border-zinc-200
+                        hover:border-zinc-400 px-4 py-2.5 rounded-xl"
+                      >
+                        <XCircle size={13} />Annuler la demande
+                      </motion.button>
+                      {error && (
+                        <div className="flex items-center gap-2 text-red-500 text-xs font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                          <AlertCircle size={13} className="shrink-0" />{error}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {status === "awaiting_payment" && (
+                    <motion.div
+                      key="awaiting_payment"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
+                      >
+                        <CheckCircle size={36} className="text-zinc-900" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Conducteur accepté</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Préparation du paiement...</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleCancel}
+                        className="flex items-center gap-2 text-xs font-bold text-zinc-400
+                        hover:text-zinc-900 transition-colors border border-zinc-200
+                        hover:border-zinc-400 px-4 py-2.5 rounded-xl"
+                      >
+                        <XCircle size={13} />Annuler la réservation
+                      </motion.button>
+                    </motion.div>
+                  )}
+
+                  {status === "confirmed" && (
+                    <motion.div
+                      key="confirmed"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
+                      >
+                        <PhoneCall size={32} className="text-zinc-900" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Réservation confirmée</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Le conducteur est en route vers vous.</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {status === "started" && (
+                    <motion.div
+                      key="started"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <div className="relative">
+                        <motion.div
+                          animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0, 0.2] }}
+                          transition={{ duration: 2.5, repeat: Infinity }}
+                          className="absolute inset-0 rounded-full bg-zinc-700"
+                        />
+                        <div className="relative w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center">
+                          <Icon size={28} className="text-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Trajet en cours</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Vers {drop}</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {status === "completed" && (
+                    <motion.div
+                      key="completed"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center"
+                      >
+                        <Star size={32} className="text-white" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Trajet terminé</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Merci d&apos;avoir utilisé RideMa !</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {(status === "cancelled" || status === "rejected") && (
+                    <motion.div
+                      key="cancelled"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
+                      >
+                        <XCircle size={32} className="text-zinc-500" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">
+                          {status === "rejected" ? "Demande refusée" : "Réservation annulée"}
+                        </h3>
+                        <p className="text-zinc-400 text-sm font-medium">Vous pouvez effectuer une nouvelle demande.</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={handleReset}
+                        className="w-full h-12 bg-zinc-900 hover:bg-black text-white font-black text-sm
+                        rounded-2xl flex items-center justify-center gap-2.5 transition-colors shadow-md"
+                      >
+                        <span>Nouvelle demande</span><ArrowRight size={15} />
+                      </motion.button>
+                    </motion.div>
+                  )}
+
+                  {status === "expired" && (
+                    <motion.div
+                      key="expired"
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                      className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
+                      >
+                        <Clock size={32} className="text-zinc-400" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Demande expirée</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Aucun conducteur n&apos;a répondu à temps.</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={handleReset}
+                        className="w-full h-12 bg-zinc-900 hover:bg-black text-white font-black text-sm
+                        rounded-2xl flex items-center justify-center gap-2.5 transition-colors shadow-md"
+                      >
+                        <span>Réessayer</span><ArrowRight size={15} />
+                      </motion.button>
+                    </motion.div>
+                  )}
+
+                </AnimatePresence>
+              )}
+
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-zinc-100">
+        <div className="w-8 h-8 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
+  )
+}

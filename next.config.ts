@@ -1,7 +1,17 @@
-import type { NextConfig } from "next";
+const nextConfig = {
+ images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+    ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "20mb",
+    },
+  },
+}
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+export default nextConfig
