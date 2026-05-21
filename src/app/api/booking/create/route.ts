@@ -43,12 +43,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Driver not found" }, { status: 404 });
     }
 
-    const existing = await Booking.findOne({
+    // Si un booking en attente de paiement ou en cours de recherche existe, le retourner
+    const pending = await Booking.findOne({
       user: session.user.id,
-      bookingStatus: { $in: ["requested", "awaiting_payment", "confirmed", "started"] },
+      bookingStatus: { $in: ["requested", "awaiting_payment"] },
     });
-    if (existing) {
-      return NextResponse.json(existing);
+    if (pending) {
+      return NextResponse.json(pending);
+    }
+
+    // Si un trajet déjà confirmé ou démarré existe, bloquer la nouvelle réservation
+    const activeTrip = await Booking.findOne({
+      user: session.user.id,
+      bookingStatus: { $in: ["confirmed", "started"] },
+    });
+    if (activeTrip) {
+      return NextResponse.json(
+        { message: "Vous avez déjà un trajet actif en cours. Annulez-le avant d'en créer un nouveau.", bookingStatus: activeTrip.bookingStatus },
+        { status: 409 }
+      );
     }
 
     const booking = await Booking.create({

@@ -65,6 +65,15 @@ function Page() {
     };
 
     fetchPendingRequests();
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await axios.get("/api/partner/bookings/pending");
+        setBookings(data);
+      } catch {
+        // silent — ne pas interrompre l'UI si le poll échoue
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAccept = async (id: string) => {

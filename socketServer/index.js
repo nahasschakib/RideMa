@@ -31,6 +31,20 @@ cors:{
  }
 })
 
+// Endpoint interne : Next.js → socket server → client driver
+app.post("/emit", (req, res) => {
+  const { userId, event, data } = req.body;
+  let sent = false;
+  for (const [, socket] of io.sockets.sockets) {
+    if (socket.userId === userId) {
+      socket.emit(event, data);
+      sent = true;
+      break;
+    }
+  }
+  res.json({ sent });
+});
+
 io.on("connection", (socket) => {
 
 socket.on("identity",async (userId) => {
@@ -55,7 +69,7 @@ socket.on("update-location",async ({userId,latitude,longitude})=>{
 
 
 socket.on("disconnect",async ()=>{
-  if(!socket.userId) return
+  if(!socket.userId) return;
   await User.findByIdAndUpdate(socket.userId,{
   socketId:null,
   isOnline:false

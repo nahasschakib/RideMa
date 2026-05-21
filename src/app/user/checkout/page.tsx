@@ -1,7 +1,7 @@
 "use client"
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from "motion/react"
-import { AlertCircle, ArrowRight, Bike, Car, CheckCircle, Clock, CreditCard, Loader2, LucideIcon, MapPin, Navigation, PhoneCall, Shield, Star, Truck, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowRight, Banknote, Bike, Car, CheckCircle, Clock, CreditCard, Globe, Loader2, LucideIcon, MapPin, Navigation, PhoneCall, Shield, Star, Truck, Wallet, XCircle } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import axios, { AxiosError } from 'axios'
 
@@ -16,7 +16,7 @@ const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
   other:      { label: "Autre",   Icon: Car   },
 }
 
-type Status = "idle" | "requested" | "awaiting_payment" | "confirmed" | "started" | "completed" | "cancelled" | "rejected" | "expired"
+type Status = "idle" | "requested" | "awaiting_payment" |"payment" | "confirmed" | "started" | "completed" | "cancelled" | "rejected" | "expired"
 
 const ACTIVE_STATUSES: Status[] = ["requested", "awaiting_payment", "confirmed", "started"]
 
@@ -44,6 +44,7 @@ function CheckoutContent() {
 
   const [status,      setStatus]      = useState<Status>("idle")
   const [bookingId,   setBookingId]   = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "cmi" | "stripe" | null>("cash")
   const [loading,     setLoading]     = useState(false)
   const [initializing,setInitializing]= useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -69,7 +70,11 @@ function CheckoutContent() {
         .then(({ data }) => {
           if (data.booking) {
             setBookingId(data.booking._id)
-            setStatus(data.booking.bookingStatus as Status)
+            setStatus(prev => {
+              const incoming = data.booking.bookingStatus as Status
+              if (prev === "payment" && incoming === "awaiting_payment") return prev
+              return incoming
+            })
           } else {
             setStatus("idle")
             setBookingId(null)
@@ -79,6 +84,14 @@ function CheckoutContent() {
     }, 3000)
     return () => clearInterval(id)
   }, [status])
+
+  useEffect(()=>{
+    if(status!=="awaiting_payment")return;
+    const t = setTimeout(()=>{
+      setStatus("payment")
+    },3000)
+    return()=>{clearTimeout(t)}
+  },[status])
 
   const handleRequest = async () => {
     if (!driverId || !vehicleId) {
@@ -101,9 +114,52 @@ function CheckoutContent() {
       setBookingId(data._id)
       setStatus((data.bookingStatus ?? "requested") as Status)
     } catch (err) {
-      if (err instanceof AxiosError)
-        setError(err.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.")
+      if (err instanceof AxiosError) {
+        const msg = err.response?.data?.message || "Une erreur est survenue. Veuillez réessayer."
+        setError(msg)
+      }
     } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmPayment = async () => {
+    if (!paymentMethod || !bookingId) return
+    setLoading(true)
+    setError(null)
+    try {
+      if (paymentMethod === "cash") {
+        await axios.post(`/api/booking/${bookingId}/confirm-payment`, { paymentMethod })
+        setStatus("confirmed")
+        return
+      }
+
+      if (paymentMethod === "stripe") {
+        const { data } = await axios.post("/api/payment/stripe/create-session", { bookingId })
+        window.location.href = data.url
+        return
+      }
+
+      if (paymentMethod === "cmi") {
+        const { data } = await axios.post("/api/payment/cmi/initiate", { bookingId })
+        // Construire et soumettre le formulaire CMI dynamiquement
+        const form = document.createElement("form")
+        form.method = "POST"
+        form.action = data.gatewayUrl
+        Object.entries(data.params as Record<string, string>).forEach(([key, value]) => {
+          const input = document.createElement("input")
+          input.type = "hidden"
+          input.name = key
+          input.value = value
+          form.appendChild(input)
+        })
+        document.body.appendChild(form)
+        form.submit()
+        return
+      }
+    } catch (err) {
+      if (err instanceof AxiosError)
+        setError(err.response?.data?.message || "Erreur lors de la confirmation du paiement.")
       setLoading(false)
     }
   }
@@ -343,6 +399,86 @@ function CheckoutContent() {
                     </motion.div>
                   )}
 
+                  {status === "payment" && (
+                    <motion.div
+                      key="payment"
+                      initial={{ opacity: 0, y:12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-col flex-1  gap-6"
+                    >
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Paiement en attente</p>
+                        <h3 className="text-2xl font-black text-zinc-900 mb-4">Veuillez effectuer le paiement</h3>
+                        <p className="text-zinc-400 text-sm font-medium mb-6">Aucun conducteur ne peut voir votre trajet tant que le paiement n&apos;est pas effectué.</p>
+                      </div>
+                      <div className='space-y-3'>
+                        {[
+                          { id: "cash",   Icon: Banknote, title: "Espèces",           sub: "Payer le conducteur après le trajet" },
+                          { id: "cmi",    Icon: CreditCard, title: "Carte marocaine (CMI)", sub: "Visa / Mastercard · banques marocaines" },
+                          { id: "stripe", Icon: Globe,    title: "Carte internationale", sub: "Visa / Mastercard · paiement sécurisé Stripe" },
+                      ].map((p, i) => {
+                        const active = paymentMethod === p.id
+                          return (
+                            <motion.div
+                            key={p.id}
+                            onClick={() => setPaymentMethod(p.id as "cash" | "cmi" | "stripe")}
+                            whileTap={{ scale: 0.98 }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left
+                              transition-all duration-200 ${
+                              active ? "border-zinc-900 bg-zinc-900" : "border-zinc-200 bg-zinc-50 hover:border-zinc-400"
+                            }`}
+                          >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+                              transition-colors ${active ? "bg-white/10" :"bg-zinc-200"}`}><p.Icon size={18} className={
+                                active ? "text-white" : "text-zinc-600"} /></div>
+                            <div className='flex-1 min-w-0'>
+                              <p className={`text-sm font-bold ${active ? "text-white" : "text-zinc-900"}`}>{p.title}</p>
+                              <p className={`text-xs font-medium ${active ? "text-zinc-400" : "text-zinc-400"}`}>{p.sub}</p>
+                            </div>
+                            <AnimatePresence>
+                              {active && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                >
+                                  <CheckCircle size={16} className="text-white shrink-0" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            
+
+
+                            </motion.div>
+                          )
+                        })}
+                      </div>
+                      {error && (
+                        <div className="flex items-center gap-2 text-red-500 text-xs font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                          <AlertCircle size={13} className="shrink-0" />{error}
+                        </div>
+                      )}
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={paymentMethod && !loading ? { scale: 1.02 } : {}}
+                        onClick={handleConfirmPayment}
+                        disabled={!paymentMethod || loading}
+                        className="w-full h-14 bg-zinc-900 hover:bg-black disabled:opacity-40
+                        text-white font-black text-sm rounded-2xl flex items-center justify-center
+                        gap-2.5 transition-colors shadow-md mt-auto"
+                      >
+                        {loading ? <Loader2 size={18} className="animate-spin" /> :
+                          paymentMethod === "cash"   ? <><Banknote size={16} /><span>Payer en espèces</span></> :
+                          paymentMethod === "cmi"    ? <><CreditCard size={16} /><span>Payer avec CMI</span><ArrowRight size={15} /></> :
+                          paymentMethod === "stripe" ? <><Globe size={16} /><span>Payer avec Stripe</span><ArrowRight size={15} /></> :
+                          <span>Confirmer le paiement</span>
+                        }
+                      </motion.button>
+                    </motion.div>
+                  )}
+
                   {status === "confirmed" && (
                     <motion.div
                       key="confirmed"
@@ -352,18 +488,34 @@ function CheckoutContent() {
                       transition={{ duration: 0.35 }}
                       className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
                     >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
-                        className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
-                      >
-                        <PhoneCall size={32} className="text-zinc-900" />
-                      </motion.div>
-                      <div>
-                        <h3 className="text-xl font-black text-zinc-900 mb-1">Réservation confirmée</h3>
-                        <p className="text-zinc-400 text-sm font-medium">Le conducteur est en route vers vous.</p>
+                      <div className="relative">
+                        <motion.div
+                          animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
+                          transition={{ duration: 2.5, repeat: Infinity }}
+                          className="absolute inset-0 rounded-full bg-zinc-700"
+                        />
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                          className="relative w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center"
+                        >
+                          <PhoneCall size={32} className="text-white" />
+                        </motion.div>
                       </div>
+                      <div>
+                        <h3 className="text-xl font-black text-zinc-900 mb-1">Paiement confirmé</h3>
+                        <p className="text-zinc-400 text-sm font-medium">En attente que le conducteur démarre le trajet.</p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleCancel}
+                        className="flex items-center gap-2 text-xs font-bold text-zinc-400
+                        hover:text-zinc-900 transition-colors border border-zinc-200
+                        hover:border-zinc-400 px-4 py-2.5 rounded-xl"
+                      >
+                        <XCircle size={13} />Annuler la réservation
+                      </motion.button>
                     </motion.div>
                   )}
 

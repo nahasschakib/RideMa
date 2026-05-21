@@ -23,6 +23,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Callbacks externes sans session : webhook Stripe, callback CMI
+  if (
+    pathname === "/api/payment/stripe/webhook" ||
+    pathname === "/api/payment/cmi/callback"
+  ) {
+    return NextResponse.next();
+  }
+
   const session = await auth();
 
   if (pathname.startsWith("/api")) {
