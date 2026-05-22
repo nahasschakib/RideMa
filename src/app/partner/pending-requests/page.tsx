@@ -1,9 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { BookingStatus, PaymentStatus } from "@/models/booking.model";
 import { Clock, Loader2, MapPin, Navigation } from "lucide-react";
+import { useRouter } from "next/navigation";
 
  interface IBooking {
   _id:string
@@ -49,14 +50,20 @@ import { Clock, Loader2, MapPin, Navigation } from "lucide-react";
 function Page() {
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter()
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const emptyCount = useRef(0);
 
   useEffect(() => {
+    emptyCount.current = 0;
+
     const fetchPendingRequests = async () => {
       try {
         setLoading(true);
         const { data } = await axios.get("/api/partner/bookings/pending");
         setBookings(data);
+        emptyCount.current = data.length === 0 ? 1 : 0;
       } catch (error) {
         console.log(error);
       } finally {
@@ -69,6 +76,12 @@ function Page() {
       try {
         const { data } = await axios.get("/api/partner/bookings/pending");
         setBookings(data);
+        if (data.length === 0) {
+          emptyCount.current += 1;
+          if (emptyCount.current >= 3) clearInterval(interval);
+        } else {
+          emptyCount.current = 0;
+        }
       } catch {
         // silent — ne pas interrompre l'UI si le poll échoue
       }
@@ -78,12 +91,23 @@ function Page() {
 
   const handleAccept = async (id: string) => {
     if (actionLoading) return;
+    setActionError(null);
     try {
       setActionLoading(id);
       await axios.get(`/api/partner/bookings/${id}/accept`);
+      router.push(`/partner/bookings/${id}`)
       setBookings((prev) => prev.filter((b) => b._id !== id));
     } catch (error) {
-      console.log(error);
+      if (error instanceof AxiosError) {
+        const code = error.response?.data?.code;
+        const msg  = error.response?.data?.message;
+        if (code === "DEPOSIT_REQUIRED")
+          setActionError("Caution non versée — déposez 500 MAD pour activer votre compte.");
+        else if (code === "WALLET_SUSPENDED")
+          setActionError("Wallet suspendu — rechargez votre solde pour continuer.");
+        else
+          setActionError(msg || "Impossible d'accepter cette demande.");
+      }
     } finally {
       setActionLoading(null);
     }
@@ -115,6 +139,13 @@ function Page() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
+        {actionError && (
+          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl px-5 py-4">
+            <span className="shrink-0">⚠</span>
+            <span>{actionError}</span>
+            <button onClick={() => setActionError(null)} className="ml-auto text-red-400 hover:text-red-700 font-bold">✕</button>
+          </div>
+        )}
         {loading ? (
           <div>
             <Loader2 className="animate-spin w-8 text-gray-700" />

@@ -21,7 +21,7 @@ function SuccessContent() {
       : `/api/payment/cmi/verify?bookingId=${bookingId}`;
 
     axios.get(url)
-      .then(() => { setStatus("ok"); setTimeout(() => router.replace("/"), 4000); })
+      .then(() => { setStatus("ok"); setTimeout(() => router.replace(bookingId ? `/user/checkout?bookingId=${bookingId}&payment=success` : "/"), 4000); })
       .catch(() => setStatus("error"));
   }, [sessionId, bookingId, router]);
 

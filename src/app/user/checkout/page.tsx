@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from "motion/react"
 import { AlertCircle, ArrowRight, Banknote, Bike, Car, CheckCircle, Clock, CreditCard, Globe, Loader2, LucideIcon, MapPin, Navigation, PhoneCall, Shield, Star, Truck, Wallet, XCircle } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import axios, { AxiosError } from 'axios'
 
 const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
@@ -16,7 +16,7 @@ const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
   other:      { label: "Autre",   Icon: Car   },
 }
 
-type Status = "idle" | "requested" | "awaiting_payment" |"payment" | "confirmed" | "started" | "completed" | "cancelled" | "rejected" | "expired"
+type Status = "idle" | "requested" | "awaiting_payment" |"payment" | "confirmed" | "started" | "cancelled" | "completed" | "rejected" | "expired"
 
 const ACTIVE_STATUSES: Status[] = ["requested", "awaiting_payment", "confirmed", "started"]
 
@@ -31,6 +31,9 @@ function CheckoutContent() {
   const pickUpLong = Number(params.get("pickUpLong"))
   const dropLat    = Number(params.get("dropLat"))
   const dropLong   = Number(params.get("dropLong"))
+  const router = useRouter()
+  const bookingIdParam = params.get("bookingId")
+  const paymentParam   = params.get("payment")
 
   const saved = useMemo(() => {
     if (typeof window === "undefined") return {}
@@ -40,14 +43,20 @@ function CheckoutContent() {
 
   const driverId  = params.get("driverId")  || saved.driverId  || ""
   const vehicleId = params.get("vehicleId") || saved.vehicleId || ""
-  const { Icon }  = VEHICLE_META[vehicle] ?? { Icon: Car }
 
+  const [restoredData, setRestoredData] = useState<{ pickup: string; drop: string; fare: string; vehicle: string } | null>(null)
   const [status,      setStatus]      = useState<Status>("idle")
   const [bookingId,   setBookingId]   = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "cmi" | "stripe" | null>("cash")
   const [loading,     setLoading]     = useState(false)
   const [initializing,setInitializing]= useState(true)
   const [error,       setError]       = useState<string | null>(null)
+
+  const displayPickup  = restoredData?.pickup  ?? pickup
+  const displayDrop    = restoredData?.drop    ?? drop
+  const displayFare    = restoredData?.fare    ?? fare
+  const displayVehicle = restoredData?.vehicle ?? vehicle
+  const { Icon } = VEHICLE_META[displayVehicle] ?? { Icon: Car }
 
   // Fetch active booking once on mount
   useEffect(() => {
@@ -76,7 +85,12 @@ function CheckoutContent() {
               return incoming
             })
           } else {
-            setStatus("idle")
+            setStatus(prev => {
+              // Ne pas écraser un statut terminal : le poll peut tirer une dernière
+              // fois pendant le cleanup React et provoquer une double animation.
+              const TERMINAL: Status[] = ["cancelled", "completed", "expired", "rejected"]
+              return TERMINAL.includes(prev) ? prev : "idle"
+            })
             setBookingId(null)
           }
         })
@@ -84,6 +98,24 @@ function CheckoutContent() {
     }, 3000)
     return () => clearInterval(id)
   }, [status])
+
+  // Restaure les données du trajet quand l'utilisateur revient de Stripe/CMI
+  useEffect(() => {
+    if (!bookingIdParam || paymentParam !== "success") return
+    axios.get(`/api/booking/${bookingIdParam}`)
+      .then(({ data }) => {
+        if (!data.booking) return
+        setBookingId(data.booking._id)
+        setStatus(data.booking.bookingStatus as Status)
+        setRestoredData({
+          pickup:  data.booking.pickUpAddress,
+          drop:    data.booking.dropAddress,
+          fare:    String(data.booking.fare),
+          vehicle: data.booking.vehicleType ?? "",
+        })
+      })
+      .catch(() => {})
+  }, [bookingIdParam, paymentParam])
 
   useEffect(()=>{
     if(status!=="awaiting_payment")return;
@@ -212,7 +244,7 @@ function CheckoutContent() {
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Véhicule sélectionné</div>
                   <div className="text-3xl font-black tracking-tight text-zinc-900">
-                    {VEHICLE_META[vehicle]?.label ?? vehicle}
+                    {VEHICLE_META[displayVehicle]?.label ?? displayVehicle}
                     </div>
                 </div>
                 <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-lg">
@@ -228,7 +260,7 @@ function CheckoutContent() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-0.5">Point de départ</div>
-                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{pickup}</div>
+                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{displayPickup}</div>
                   </div>
                   <MapPin size={14} className="text-zinc-400 shrink-0 mt-1" />
                 </div>
@@ -238,7 +270,7 @@ function CheckoutContent() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-0.5">Point d&apos;arrivée</div>
-                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{drop}</div>
+                    <div className="text-sm font-semibold text-zinc-900 leading-snug truncate">{displayDrop}</div>
                   </div>
                   <Navigation size={14} className="text-zinc-400 shrink-0 mt-1" />
                 </div>
@@ -256,7 +288,7 @@ function CheckoutContent() {
                   className="flex items-baseline gap-2"
                 >
                   <span className="text-zinc-400 text-lg font-black">MAD</span>
-                  <span className="text-zinc-900 text-4xl font-black tracking-tight leading-none">{fare}</span>
+                  <span className="text-zinc-900 text-4xl font-black tracking-tight leading-none">{displayFare}</span>
                 </motion.div>
               </div>
             </div>
@@ -500,21 +532,33 @@ function CheckoutContent() {
                           transition={{ type: "spring", stiffness: 260, damping: 16 }}
                           className="relative w-20 h-20 rounded-full bg-zinc-900 flex items-center justify-center"
                         >
-                          <PhoneCall size={32} className="text-white" />
+                          <CheckCircle size={32} className="text-white" />
                         </motion.div>
                       </div>
                       <div>
-                        <h3 className="text-xl font-black text-zinc-900 mb-1">Paiement confirmé</h3>
-                        <p className="text-zinc-400 text-sm font-medium">En attente que le conducteur démarre le trajet.</p>
+                        <motion.h3 
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3, type: "spring", stiffness: 260, damping: 16 }}
+                        className="text-xl font-black text-zinc-900 mb-1">Paiement confirmé</motion.h3>
+                        <motion.p 
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.4, type: "spring", stiffness: 260, damping: 16 }}
+                        className="text-zinc-400 text-sm font-medium max-w-xs">En attente que le conducteur démarre le trajet.</motion.p>
                       </div>
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleCancel}
+                       initial={{ opacity: 0, y:8 }}
+                       animate={{ opacity: 1, y:0}}
+                       transition={{delay:0.5}}
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{scale:1.03}}
+                       onClick={() => router.push(`/partner/bookings?bookingId=${bookingId}`)}
                         className="flex items-center gap-2 text-xs font-bold text-zinc-400
                         hover:text-zinc-900 transition-colors border border-zinc-200
                         hover:border-zinc-400 px-4 py-2.5 rounded-xl"
                       >
-                        <XCircle size={13} />Annuler la réservation
+                        <XCircle size={13} />Suivez votre trajet...
                       </motion.button>
                     </motion.div>
                   )}
@@ -540,7 +584,7 @@ function CheckoutContent() {
                       </div>
                       <div>
                         <h3 className="text-xl font-black text-zinc-900 mb-1">Trajet en cours</h3>
-                        <p className="text-zinc-400 text-sm font-medium">Vers {drop}</p>
+                        <p className="text-zinc-400 text-sm font-medium">Vers {displayDrop}</p>
                       </div>
                     </motion.div>
                   )}

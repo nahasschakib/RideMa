@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
           {
             quantity: 1,
             price_data: {
-              currency: process.env.STRIPE_CURRENCY ?? "eur",
+              currency: process.env.STRIPE_CURRENCY ?? "mad",
               unit_amount: Math.round(amount * 100),
               product_data: {
                 name: "Caution RideMa",

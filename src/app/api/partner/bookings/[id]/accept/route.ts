@@ -17,29 +17,27 @@ export async function GET(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const wallet = await Wallet.findOne({
-      owner: session.user.id,
-      ownerType: "driver",
-    });
+    const skipDepositCheck = process.env.SKIP_DEPOSIT_CHECK === "true";
 
-    if (!wallet || wallet.deposit.status !== "active") {
-      return NextResponse.json(
-        {
-          code: "DEPOSIT_REQUIRED",
-          message: "Versez votre caution de 500 MAD pour activer votre compte.",
-        },
-        { status: 403 }
-      );
-    }
+    if (!skipDepositCheck) {
+      const wallet = await Wallet.findOne({
+        owner: session.user.id,
+        ownerType: "driver",
+      });
 
-    if (!wallet.isActive) {
-      return NextResponse.json(
-        {
-          code: "WALLET_SUSPENDED",
-          message: "Solde insuffisant. Rechargez votre wallet pour continuer.",
-        },
-        { status: 403 }
-      );
+      if (!wallet || wallet.deposit.status !== "active") {
+        return NextResponse.json(
+          { code: "DEPOSIT_REQUIRED", message: "Caution requise." },
+          { status: 403 }
+        );
+      }
+
+      if (!wallet.isActive) {
+        return NextResponse.json(
+          { code: "WALLET_SUSPENDED", message: "Wallet suspendu." },
+          { status: 403 }
+        );
+      }
     }
 
     const booking = await Booking.findById(id);
