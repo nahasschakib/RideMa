@@ -1,11 +1,14 @@
-// app/partner/layout.tsx
-import Navbar from "@/app/components/Navbar"
+import PartnerNavbar from "@/app/components/PartnerNavbar";
 
-export default function PartnerLayout({ children }: { children: React.ReactNode }) {
+export default function PartnerLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
-      <Navbar />
-      {children}
+      <PartnerNavbar />
+      <div className="pt-20">{children}</div>
     </>
-  )
+  );
 }

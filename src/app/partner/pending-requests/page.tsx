@@ -94,8 +94,8 @@ function Page() {
     setActionError(null);
     try {
       setActionLoading(id);
-      await axios.get(`/api/partner/bookings/${id}/accept`);
-      router.push(`/partner/bookings/${id}`)
+      await axios.post(`/api/partner/bookings/${id}/accept`);
+      router.push(`/partner/bookings?bookingId=${id}`)
       setBookings((prev) => prev.filter((b) => b._id !== id));
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -117,7 +117,7 @@ function Page() {
     if (actionLoading) return;
     try {
       setActionLoading(id);
-      await axios.get(`/api/partner/bookings/${id}/reject`);
+      await axios.post(`/api/partner/bookings/${id}/reject`);
       setBookings((prev) => prev.filter((b) => b._id !== id));
     } catch (error) {
       console.log(error);

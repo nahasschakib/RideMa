@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   Bike, Car, Truck, MapPin, Navigation, Clock, CheckCircle,
   XCircle, Loader2, Star, Banknote, AlertCircle, PhoneCall,
-  User as UserIcon, ArrowLeft,
+  User as UserIcon, ArrowLeft, Phone,
 } from "lucide-react"
 import axios from "axios"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ type BookingStatus =
 type PaymentStatus = "pending" | "paid" | "cash" | "failed"
 
 interface PopulatedUser  { _id: string; name?: string; email?: string }
-interface PopulatedVehicle { _id: string; type?: string }
+interface PopulatedVehicle { _id: string; type?: string; model?: string; number?: string }
 
 interface PartnerBooking {
   _id: string
@@ -30,6 +31,7 @@ interface PartnerBooking {
   fare: number
   bookingStatus: BookingStatus
   paymentStatus: PaymentStatus
+  userMobileNumber: string
   createdAt: string
 }
 
@@ -104,7 +106,7 @@ function ClientTrackingView({ bookingId }: { bookingId: string }) {
 
   const fetch = async () => {
     try {
-      const { data } = await axios.get(`/api/booking/${bookingId}`)
+      const { data } = await axios.get(`/api/partner/bookings/${bookingId}`)
       setBooking(data.booking)
     } catch (err: unknown) {
       if (axios.isAxiosError(err))
@@ -307,13 +309,13 @@ function ClientTrackingView({ bookingId }: { bookingId: string }) {
               </div>
             </div>
             {booking.driverMobileNumber && (
-              <a
+              <Link
                 href={`tel:${booking.driverMobileNumber}`}
                 className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center
                 hover:bg-black transition-colors"
               >
                 <PhoneCall size={15} className="text-white" />
-              </a>
+              </Link>
             )}
           </div>
         </motion.div>
@@ -382,59 +384,85 @@ function BookingCard({ booking }: { booking: PartnerBooking }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-white rounded-3xl border border-zinc-200 overflow-hidden
-      shadow-[0_2px_16px_rgba(0,0,0,0.06)]"
+      className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
     >
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-600">
-              {VEHICLE_ICON[vehicleType] ?? <Car size={14} />}
+      {/* Header gradient */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-200 rounded-full flex items-center justify-center shrink-0">
+              <UserIcon size={16} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-xs font-black text-zinc-900">
-                {VEHICLE_LABEL[vehicleType] ?? vehicleType}
-              </p>
-              <p className="text-[10px] text-zinc-400 font-medium">
+              <p className="text-sm font-semibold text-gray-900">
                 {booking.user?.name ?? booking.user?.email ?? "Client"}
               </p>
+              {booking.userMobileNumber && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Phone size={11} className="text-gray-400" />
+                  <span className="text-xs text-gray-500">{booking.userMobileNumber}</span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${cfg.color}`}>
-              {cfg.label}
-            </span>
-            {isActive && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
-          </div>
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${cfg.color}`}>
+            {cfg.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Véhicule */}
+        <div className="bg-gray-50 rounded-lg p-2 flex items-center gap-2 text-xs text-gray-600">
+          <span className="text-gray-500 flex items-center">{VEHICLE_ICON[vehicleType] ?? <Car size={14} />}</span>
+          <span>
+            {booking.vehicle?.model ?? VEHICLE_LABEL[vehicleType] ?? vehicleType}
+            {" • "}
+            {booking.vehicle?.number ?? "—"}
+          </span>
         </div>
 
-        <div className="bg-zinc-50 border border-zinc-100 rounded-2xl overflow-hidden mb-4">
+        {/* Itinéraire */}
+        <div className="bg-zinc-50 border border-zinc-100 rounded-xl overflow-hidden">
           <div className="flex gap-3 px-4 py-3 border-b border-zinc-100">
             <div className="flex flex-col items-center shrink-0 pt-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white ring ring-emerald-200" />
               <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 10 }} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Départ</p>
               <p className="text-xs font-semibold text-zinc-900 truncate">{booking.pickUpAddress}</p>
             </div>
-            <MapPin size={12} className="text-zinc-400 shrink-0 mt-1" />
+            <MapPin size={12} className="text-emerald-400 shrink-0 mt-1" />
           </div>
           <div className="flex gap-3 px-4 py-3">
-            <div className="flex flex-col items-center shrink-0 pt-0.5">
+            <div className="shrink-0 pt-0.5">
               <div className="w-2.5 h-2.5 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Arrivée</p>
               <p className="text-xs font-semibold text-zinc-900 truncate">{booking.dropAddress}</p>
             </div>
-            <Navigation size={12} className="text-zinc-400 shrink-0 mt-1" />
+            <MapPin size={12} className="text-zinc-400 shrink-0 mt-1" />
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] text-zinc-300 font-medium">{formatDate(booking.createdAt)}</p>
-          <div className="flex items-baseline gap-1">
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] text-zinc-400 font-medium">{formatDate(booking.createdAt)}</p>
+            {isActive && (
+              <Link
+                href={`?bookingId=${booking._id}`}
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600
+                  bg-blue-50 hover:bg-blue-100 transition-colors px-2.5 py-1 rounded-full"
+              >
+                <Navigation size={10} />
+                Voir le suivi
+              </Link>
+            )}
+          </div>
+          <div className="flex items-baseline gap-1 shrink-0">
             <span className="text-[10px] font-black text-zinc-400">MAD</span>
             <span className="text-lg font-black text-zinc-900">{booking.fare}</span>
           </div>
@@ -446,10 +474,23 @@ function BookingCard({ booking }: { booking: PartnerBooking }) {
 
 // ─── PARTNER BOOKINGS LIST ────────────────────────────────────────────────────
 
+const FILTER_OPTIONS: { label: string; value: BookingStatus | "all" }[] = [
+  { label: "Toutes",               value: "all" },
+  { label: "Demandée",             value: "requested" },
+  { label: "En attente paiement",  value: "awaiting_payment" },
+  { label: "Confirmée",            value: "confirmed" },
+  { label: "En cours",             value: "started" },
+  { label: "Terminée",             value: "completed" },
+  { label: "Annulée",              value: "cancelled" },
+  { label: "Rejetée",              value: "rejected" },
+  { label: "Expirée",              value: "expired" },
+]
+
 function PartnerBookingsList() {
   const [bookings, setBookings] = useState<PartnerBooking[]>([])
   const [loading, setLoading]   = useState(true)
   const [error,   setError]     = useState<string | null>(null)
+  const [filter,  setFilter]    = useState<BookingStatus | "all">("all")
 
   const fetchBookings = async () => {
     try {
@@ -472,25 +513,46 @@ function PartnerBookingsList() {
     return () => clearInterval(id)
   }, [bookings])
 
-  const activeBookings   = bookings.filter(b => ACTIVE.includes(b.bookingStatus))
-  const inactiveBookings = bookings.filter(b => !ACTIVE.includes(b.bookingStatus))
+  const filtered = filter === "all"
+    ? bookings
+    : bookings.filter(b => b.bookingStatus === filter)
 
   return (
     <>
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mb-10"
+        className="mb-6"
       >
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-px w-8 bg-zinc-900" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Partenaire</span>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+              <Car size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">Réservations partenaires</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {loading
+                  ? "Chargement..."
+                  : `${bookings.length} trajet${bookings.length !== 1 ? "s" : ""} attribué${bookings.length !== 1 ? "s" : ""}`
+                }
+              </p>
+            </div>
+          </div>
+          <select
+            value={filter}
+            onChange={e => setFilter(e.target.value as BookingStatus | "all")}
+            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 bg-white
+              text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              cursor-pointer shrink-0"
+          >
+            {FILTER_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
-        <h1 className="text-4xl font-black tracking-tight text-zinc-900">Mes trajets</h1>
-        <p className="text-zinc-400 text-sm mt-1.5 font-medium">
-          {loading ? "Chargement..." : `${bookings.length} trajet${bookings.length !== 1 ? "s" : ""}`}
-        </p>
       </motion.div>
 
       {error && (
@@ -506,7 +568,7 @@ function PartnerBookingsList() {
         </div>
       )}
 
-      {!loading && bookings.length === 0 && !error && (
+      {!loading && filtered.length === 0 && !error && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -516,31 +578,18 @@ function PartnerBookingsList() {
             <Star size={24} className="text-zinc-400" />
           </div>
           <p className="text-zinc-900 font-black text-lg">Aucun trajet</p>
-          <p className="text-zinc-400 text-sm font-medium">Vos trajets apparaîtront ici.</p>
+          <p className="text-zinc-400 text-sm font-medium">
+            {filter === "all" ? "Vos trajets apparaîtront ici." : "Aucun trajet pour ce filtre."}
+          </p>
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {!loading && activeBookings.length > 0 && (
-          <motion.div className="mb-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              En cours
-            </p>
-            <div className="space-y-4">
-              {activeBookings.map(b => <BookingCard key={b._id} booking={b} />)}
-            </div>
+      {!loading && filtered.length > 0 && (
+        <AnimatePresence>
+          <motion.div className="space-y-4">
+            {filtered.map(b => <BookingCard key={b._id} booking={b} />)}
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!loading && inactiveBookings.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-4">Historique</p>
-          <div className="space-y-4">
-            {inactiveBookings.map(b => <BookingCard key={b._id} booking={b} />)}
-          </div>
-        </div>
+        </AnimatePresence>
       )}
     </>
   )

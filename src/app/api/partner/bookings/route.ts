@@ -12,15 +12,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const partner = await User.findOne({ email: session.user.email })
-    if (!partner) {
-      return NextResponse.json({ message: "Partner not found" }, { status: 404 })
+    const driver = await User.findOne({ email: session.user.email })
+    if (!driver) {
+      return NextResponse.json({ message: "Driver not found" }, { status: 404 })
     }
 
     const bookings = await Booking.find({
-      driver: partner._id
+      driver: driver._id
     }).populate("user driver vehicle")
       .sort({ createdAt: -1 })
+    
 
     return NextResponse.json(bookings, { status: 200 })
   } catch (error) {

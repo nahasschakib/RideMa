@@ -4,7 +4,7 @@ import { AnimatePresence, easeOut, motion } from "motion/react";
 import { CircleDashed, Lock, Mail, User, X } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 type propType = {
   open: boolean;
@@ -20,9 +20,6 @@ export default function AuthModal({ open, onClose }: propType) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-
-  const session = useSession();
-  console.log(session.data?.user);
 
   const handleClose = () => {
     setStep("Se connecter");

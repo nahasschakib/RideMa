@@ -4,7 +4,7 @@ import Booking from "@/models/booking.model";
 import Wallet from "@/models/wallet.model";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {

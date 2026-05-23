@@ -4,7 +4,7 @@ import React, { ReactNode } from 'react'
 
 function Provider({children}:{children:ReactNode}) {
   return (
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
         {children}
     </SessionProvider>
   )
