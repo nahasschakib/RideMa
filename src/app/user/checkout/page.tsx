@@ -73,7 +73,7 @@ function CheckoutContent() {
 
   // Poll every 3s while booking is in an active state
   useEffect(() => {
-    if (!ACTIVE_STATUSES.includes(status)) return
+    if (status === "idle" || !ACTIVE_STATUSES.includes(status)) return
     const id = setInterval(() => {
       axios.get("/api/booking/active")
         .then(({ data }) => {
@@ -86,8 +86,7 @@ function CheckoutContent() {
             })
           } else {
             setStatus(prev => {
-              // Ne pas écraser un statut terminal : le poll peut tirer une dernière
-              // fois pendant le cleanup React et provoquer une double animation.
+              if (prev === "idle") return prev
               const TERMINAL: Status[] = ["cancelled", "completed", "expired", "rejected"]
               return TERMINAL.includes(prev) ? prev : "idle"
             })

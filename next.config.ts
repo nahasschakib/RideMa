@@ -1,4 +1,13 @@
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/partner/bookings/:id",
+        destination: "/partner/bookings?bookingId=:id",
+        permanent: false,
+      },
+    ]
+  },
  images: {
     remotePatterns: [
       {

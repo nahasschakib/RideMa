@@ -1,626 +1,302 @@
 "use client"
-import React, { Suspense, useEffect, useRef, useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import {
-  Bike, Car, Truck, MapPin, Navigation, Clock, CheckCircle,
-  XCircle, Loader2, Star, Banknote, AlertCircle, PhoneCall,
-  User as UserIcon, ArrowLeft, Phone,
-} from "lucide-react"
-import axios from "axios"
-import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+import React, { useEffect, useState } from "react"
+import { BookingStatus, PaymentStatus } from "@/models/booking.model"
+import { IVehicle } from "@/models/vehicle.model"
+import axios, { AxiosError } from "axios"
+import { Bike, Car, Loader2, MapPin, Phone, Truck, User } from "lucide-react"
+import { motion } from "motion/react"
+import { IUser } from "../../../../types/user"
 
-type BookingStatus =
-  | "idle" | "requested" | "awaiting_payment" | "confirmed"
-  | "started" | "completed" | "cancelled" | "rejected" | "expired"
-
-type PaymentStatus = "pending" | "paid" | "cash" | "failed"
-
-interface PopulatedUser  { _id: string; name?: string; email?: string }
-interface PopulatedVehicle { _id: string; type?: string; model?: string; number?: string }
-
-interface PartnerBooking {
+interface IBooking {
   _id: string
-  user: PopulatedUser
-  driver: PopulatedUser
-  vehicle: PopulatedVehicle
+  user: IUser
+  driver: IUser
+  vehicle: IVehicle
   pickUpAddress: string
   dropAddress: string
-  fare: number
-  bookingStatus: BookingStatus
-  paymentStatus: PaymentStatus
-  userMobileNumber: string
-  createdAt: string
-}
-
-interface ClientBooking {
-  _id: string
-  pickUpAddress: string
-  dropAddress: string
-  fare: number
-  bookingStatus: BookingStatus
-  paymentStatus: PaymentStatus
-  vehicleType: string | null
-  driverName: string | null
-  driverMobileNumber: string | null
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const VEHICLE_ICON: Record<string, React.ReactNode> = {
-  car: <Car size={14} />, motorcycle: <Bike size={14} />,
-  scooter: <Bike size={14} />, truck: <Truck size={14} />,
-  bus: <Truck size={14} />, van: <Truck size={14} />,
-}
-const VEHICLE_LABEL: Record<string, string> = {
-  car: "Voiture", motorcycle: "Moto", scooter: "Scooter",
-  truck: "Camion", bus: "Bus", van: "Van", other: "Autre",
-}
-
-const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string }> = {
-  idle:             { label: "Inactif",         color: "bg-zinc-100 text-zinc-500" },
-  requested:        { label: "En attente",       color: "bg-amber-50 text-amber-600 border border-amber-200" },
-  awaiting_payment: { label: "Paiement attendu", color: "bg-blue-50 text-blue-600 border border-blue-200" },
-  confirmed:        { label: "Confirmé",         color: "bg-emerald-50 text-emerald-600 border border-emerald-200" },
-  started:          { label: "En cours",         color: "bg-zinc-900 text-white" },
-  completed:        { label: "Terminé",          color: "bg-zinc-100 text-zinc-600" },
-  cancelled:        { label: "Annulé",           color: "bg-red-50 text-red-500 border border-red-200" },
-  rejected:         { label: "Refusé",           color: "bg-red-50 text-red-500 border border-red-200" },
-  expired:          { label: "Expiré",           color: "bg-zinc-100 text-zinc-400" },
-}
-
-const ACTIVE: BookingStatus[] = ["requested", "awaiting_payment", "confirmed", "started"]
-const TERMINAL: BookingStatus[] = ["completed", "cancelled", "rejected", "expired"]
-
-// Étapes du stepper client (ordre chronologique)
-const STEPS: { key: BookingStatus; label: string }[] = [
-  { key: "requested",        label: "Demande" },
-  { key: "awaiting_payment", label: "Accepté" },
-  { key: "confirmed",        label: "Payé" },
-  { key: "started",          label: "En course" },
-  { key: "completed",        label: "Arrivé" },
-]
-
-function stepIndex(status: BookingStatus): number {
-  const order: BookingStatus[] = ["requested", "awaiting_payment", "confirmed", "started", "completed"]
-  const i = order.indexOf(status)
-  return i === -1 ? 0 : i
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  })
-}
-
-// ─── CLIENT TRACKING VIEW ─────────────────────────────────────────────────────
-
-function ClientTrackingView({ bookingId }: { bookingId: string }) {
-  const router = useRouter()
-  const [booking, setBooking] = useState<ClientBooking | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
-
-  const fetch = async () => {
-    try {
-      const { data } = await axios.get(`/api/partner/bookings/${bookingId}`)
-      setBooking(data.booking)
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err))
-        setError(err.response?.data?.message ?? "Impossible de charger le trajet.")
-    } finally {
-      setLoading(false)
-    }
+  pickUpLocation: {
+    type: "Point"
+    coordinates: [number, number]
   }
+  dropLocation: {
+    type: "Point"
+    coordinates: [number, number]
+  }
+  fare: number
+  userMobileNumber: string
+  driverMobileNumber: string
+  bookingStatus: BookingStatus
+  paymentStatus: PaymentStatus
+  paymentDeadline: Date
+  adminCommission: number
+  partnerAmount: number
+  pickUpOtp: string
+  pickUpOtpExpires: Date
+  dropOtp: string
+  dropOtpExpires: Date
+  createdAt?: Date
+  updatedAt?: Date
+}
 
-  useEffect(() => { fetch() }, [bookingId])
+// Mapping statuts français → valeurs DB
+const STATUS_OPTIONS: Record<string, string> = {
+  Toutes: "All",
+  Demandée: "requested",
+  "En attente de paiement": "awaiting_payment",
+  Confirmée: "confirmed",
+  Commencée: "started",
+  Terminée: "completed",
+  Annulée: "cancelled",
+  Rejetée: "rejected",
+  Expirée: "expired",
+}
 
-  // Poll toutes les 3s tant que le statut est actif
+const STATUS_COLORS: Record<string, string> = {
+  requested: "bg-amber-50 text-amber-600 border border-amber-200",
+  awaiting_payment: "bg-blue-50 text-blue-600 border border-blue-200",
+  confirmed: "bg-emerald-50 text-emerald-600 border border-emerald-200",
+  started: "bg-zinc-900 text-white",
+  completed: "bg-teal-50 text-teal-600 border border-teal-200",
+  cancelled: "bg-red-50 text-red-500 border border-red-200",
+  rejected: "bg-red-50 text-red-600 border border-red-200",
+  expired: "bg-gray-50 text-gray-600 border border-gray-200",
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  requested: "Demandée",
+  awaiting_payment: "En attente paiement",
+  confirmed: "Confirmée",
+  started: "En cours",
+  completed: "Terminée",
+  cancelled: "Annulée",
+  rejected: "Rejetée",
+  expired: "Expirée",
+}
+
+function getVehicleIcon(vehicleType?: string) {
+  switch (vehicleType?.toLowerCase()) {
+    case "bike":
+    case "motorcycle":
+    case "scooter":
+      return <Bike className="w-4 h-4 text-gray-400" />
+    case "truck":
+    case "bus":
+    case "van":
+      return <Truck className="w-4 h-4 text-gray-400" />
+    case "car":
+    default:
+      return <Car className="w-4 h-4 text-gray-400" />
+  }
+}
+
+export default function Page() {
+  const [bookings, setBookings] = useState<IBooking[]>([])
+  const [selectStatus, setSelectStatus] = useState("All")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
-    if (!booking || !ACTIVE.includes(booking.bookingStatus)) return
-    const id = setInterval(fetch, 3000)
-    return () => clearInterval(id)
-  }, [booking?.bookingStatus])
+    const fetchBookings = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const { data } = await axios.get("/api/partner/bookings")
+        setBookings(data)
+      } catch (err) {
+        if (err instanceof AxiosError) {
+          setError(err.response?.data?.message ?? "Erreur lors du chargement.")
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchBookings()
+  }, [])
 
-  if (loading) return (
-    <div className="flex flex-1 items-center justify-center py-32">
-      <Loader2 size={28} className="text-zinc-400 animate-spin" />
-    </div>
-  )
-
-  if (error || !booking) return (
-    <div className="flex flex-col items-center justify-center py-32 gap-3 text-center">
-      <AlertCircle size={28} className="text-zinc-400" />
-      <p className="text-zinc-900 font-black">Trajet introuvable</p>
-      <p className="text-zinc-400 text-sm font-medium">{error}</p>
-      <button
-        onClick={() => router.back()}
-        className="mt-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 flex items-center gap-1.5"
-      >
-        <ArrowLeft size={12} />Retour
-      </button>
-    </div>
-  )
-
-  const cfg      = STATUS_CONFIG[booking.bookingStatus]
-  const step     = stepIndex(booking.bookingStatus)
-  const isActive = ACTIVE.includes(booking.bookingStatus)
-  const isFailed = booking.bookingStatus === "cancelled" ||
-                   booking.bookingStatus === "rejected"  ||
-                   booking.bookingStatus === "expired"
-  const vehicleType = booking.vehicleType ?? "other"
+  const filterBookings =
+    selectStatus === "All"
+      ? bookings
+      : bookings.filter((b) => b.bookingStatus === selectStatus)
 
   return (
-    <div className="max-w-lg mx-auto">
-
-      {/* Back */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-xs font-bold text-zinc-400
-        hover:text-zinc-900 transition-colors mb-8"
-      >
-        <ArrowLeft size={13} />Retour
-      </button>
-
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mb-8"
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-px w-8 bg-zinc-900" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Suivi</span>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto py-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <Car className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Réservations partenaires
+                </h1>
+                <p className="text-gray-500 text-sm mt-1">
+                  {bookings.length}{" "}
+                  {bookings.length === 1 ? "Trajet" : "Trajets"} qui vous est
+                  attribué
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <h1 className="text-4xl font-black tracking-tight text-zinc-900">Votre trajet</h1>
-      </motion.div>
+      </div>
 
-      {/* Statut principal */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="bg-white rounded-3xl border border-zinc-200 overflow-hidden
-        shadow-[0_4px_24px_rgba(0,0,0,0.07)] mb-4"
-      >
-        <div className={`h-1 ${isFailed ? "bg-red-400" : "bg-zinc-900"}`} />
-        <div className="p-8 flex flex-col items-center text-center gap-5">
-
-          {/* Icône animée */}
-          <div className="relative">
-            {isActive && (
-              <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
-                className="absolute inset-0 rounded-full bg-zinc-700"
-              />
-            )}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 16 }}
-              className={`relative w-20 h-20 rounded-full flex items-center justify-center
-                ${isFailed  ? "bg-zinc-100 border-2 border-zinc-200"
-                : booking.bookingStatus === "completed" ? "bg-zinc-900"
-                : "bg-zinc-900"}`}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-3xl mx-auto">
+          {/* Filtre */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-sm text-gray-500">
+              Affichage {filterBookings.length} réservations
+            </div>
+            <select
+              value={selectStatus}
+              onChange={(e) => setSelectStatus(e.target.value)}
+              className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm
+                text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {booking.bookingStatus === "completed"  && <Star      size={32} className="text-white" />}
-              {isFailed                               && <XCircle   size={32} className="text-zinc-400" />}
-              {booking.bookingStatus === "requested"  && <Loader2   size={28} className="text-white animate-spin" />}
-              {(booking.bookingStatus === "awaiting_payment" ||
-                booking.bookingStatus === "confirmed")       && <CheckCircle size={32} className="text-white" />}
-              {booking.bookingStatus === "started"    && (
-                VEHICLE_ICON[vehicleType]
-                  ? <span className="text-white [&>svg]:size-7">{VEHICLE_ICON[vehicleType]}</span>
-                  : <Car size={28} className="text-white" />
-              )}
-            </motion.div>
+              {Object.entries(STATUS_OPTIONS).map(([label, value]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Label */}
-          <div>
-            <span className={`inline-flex items-center gap-1.5 text-[10px] font-black
-            uppercase tracking-wide px-3 py-1 rounded-full mb-3 ${cfg.color}`}>
-              {isActive && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-              {cfg.label}
-            </span>
-            <motion.h2
-              key={booking.bookingStatus}
-              initial={{ y: 8, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="text-xl font-black text-zinc-900 mb-1"
-            >
-              {booking.bookingStatus === "requested"        && "Recherche d'un conducteur..."}
-              {booking.bookingStatus === "awaiting_payment" && "Conducteur accepté !"}
-              {booking.bookingStatus === "confirmed"        && "Paiement confirmé"}
-              {booking.bookingStatus === "started"          && "Trajet en cours"}
-              {booking.bookingStatus === "completed"        && "Trajet terminé !"}
-              {booking.bookingStatus === "cancelled"        && "Trajet annulé"}
-              {booking.bookingStatus === "rejected"         && "Demande refusée"}
-              {booking.bookingStatus === "expired"          && "Demande expirée"}
-            </motion.h2>
-            <p className="text-zinc-400 text-sm font-medium">
-              {booking.bookingStatus === "requested"        && "En attente qu'un conducteur accepte..."}
-              {booking.bookingStatus === "awaiting_payment" && "Préparation du paiement..."}
-              {booking.bookingStatus === "confirmed"        && "Le conducteur arrive vers vous."}
-              {booking.bookingStatus === "started"          && `En route vers ${booking.dropAddress}`}
-              {booking.bookingStatus === "completed"        && "Merci d'avoir utilisé RideMa !"}
-              {isFailed                                     && "Vous pouvez effectuer une nouvelle demande."}
-            </p>
-          </div>
+          {/* Erreur */}
+          {error && (
+            <div className="bg-red-50 border border-red-100 text-red-500 text-sm
+              rounded-xl px-4 py-3 mb-4">
+              {error}
+            </div>
+          )}
 
-          {/* Stepper */}
-          {!isFailed && (
-            <div className="flex items-center gap-0 w-full max-w-xs mt-2">
-              {STEPS.map((s, i) => {
-                const done    = i < step
-                const current = i === step
-                const last    = i === STEPS.length - 1
-                return (
-                  <React.Fragment key={s.key}>
-                    <div className="flex flex-col items-center gap-1 shrink-0">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors
-                        ${done || current ? "bg-zinc-900" : "bg-zinc-200"}`}>
-                        {done
-                          ? <CheckCircle size={12} className="text-white" />
-                          : current && isActive
-                          ? <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                          : <span className={`w-2 h-2 rounded-full ${current ? "bg-white" : "bg-zinc-400"}`} />
-                        }
+          {/* Chargement */}
+          {loading && (
+            <div className="flex justify-center py-16">
+              <Loader2 className="animate-spin w-8 h-8 text-black" />
+            </div>
+          )}
+
+          {/* Vide */}
+          {!loading && filterBookings.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <Car className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <h2 className="text-lg font-medium text-gray-900">
+                Aucune réservation pour le moment
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                Lorsque les clients réservent des courses, celles-ci
+                apparaîtront ici.
+              </p>
+            </div>
+          )}
+
+          {/* Liste */}
+          {!loading && filterBookings.length > 0 && (
+            <div className="space-y-4">
+              {filterBookings.map((b, i) => (
+                <motion.div
+                  key={b._id ?? i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+
+                    {/* Header card */}
+                    <div className="flex items-center gap-3 p-4 bg-linear-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-200 shrink-0 border-2 border-white shadow-sm flex items-center justify-center">
+                        <User className="w-6 h-6 text-blue-600" />
                       </div>
-                      <span className={`text-[8px] font-black uppercase tracking-wide whitespace-nowrap
-                        ${done || current ? "text-zinc-900" : "text-zinc-400"}`}>
-                        {s.label}
-                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-900">
+                            {b.user?.name?.toUpperCase() ?? "Client"}
+                          </h3>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium
+                              ${STATUS_COLORS[b.bookingStatus] ?? "bg-gray-50 text-gray-700"}`}
+                          >
+                            {STATUS_LABELS[b.bookingStatus] ?? b.bookingStatus}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
+                          <Phone className="w-3 h-3" />
+                          <span>{b.userMobileNumber ?? "—"}</span>
+                        </div>
+                      </div>
                     </div>
-                    {!last && (
-                      <div className={`flex-1 h-px mx-1 mb-3.5 transition-colors
-                        ${done ? "bg-zinc-900" : "bg-zinc-200"}`} />
-                    )}
-                  </React.Fragment>
-                )
-              })}
+
+                    {/* Véhicule */}
+                    <div className="px-4 pt-3">
+                      <div className="bg-gray-50 rounded-lg p-2 flex items-center gap-2">
+                        {getVehicleIcon(b.vehicle?.type)}
+                        <div className="text-xs text-gray-600">
+                          {b.vehicle?.model ?? "—"} &bull;{" "}
+                          {b.vehicle?.number ?? "Non assigné"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Itinéraire */}
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <MapPin className="w-3 h-3 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-green-600 uppercase tracking-wider">
+                            Départ
+                          </span>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-relaxed">
+                            {b.pickUpAddress ?? "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                          <MapPin className="w-3 h-3 text-red-500" />
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-red-500 uppercase tracking-wider">
+                            Arrivée
+                          </span>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-relaxed">
+                            {b.dropAddress ?? "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-4 pb-4 flex items-center justify-between">
+                      <p className="text-xs text-gray-400">
+                        {b.createdAt
+                          ? new Date(b.createdAt).toLocaleDateString("fr-FR", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                      </p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xs font-black text-gray-400">MAD</span>
+                        <span className="text-lg font-black text-gray-900">{b.fare}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </motion.div>
+              ))}
             </div>
           )}
         </div>
-      </motion.div>
-
-      {/* Conducteur */}
-      {(booking.driverName || booking.driverMobileNumber) && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.14, duration: 0.4 }}
-          className="bg-white rounded-3xl border border-zinc-200 overflow-hidden
-          shadow-[0_2px_12px_rgba(0,0,0,0.05)] mb-4"
-        >
-          <div className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-zinc-100 rounded-2xl flex items-center justify-center">
-                <UserIcon size={16} className="text-zinc-500" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Conducteur</p>
-                <p className="text-sm font-black text-zinc-900">{booking.driverName ?? "—"}</p>
-              </div>
-            </div>
-            {booking.driverMobileNumber && (
-              <Link
-                href={`tel:${booking.driverMobileNumber}`}
-                className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center
-                hover:bg-black transition-colors"
-              >
-                <PhoneCall size={15} className="text-white" />
-              </Link>
-            )}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Itinéraire + tarif */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
-        className="bg-white rounded-3xl border border-zinc-200 overflow-hidden
-        shadow-[0_2px_12px_rgba(0,0,0,0.05)]"
-      >
-        <div className="bg-zinc-50 border-b border-zinc-100 overflow-hidden">
-          <div className="flex gap-3 px-6 py-4 border-b border-zinc-100">
-            <div className="flex flex-col items-center shrink-0 pt-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
-              <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 12 }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Départ</p>
-              <p className="text-sm font-semibold text-zinc-900 truncate">{booking.pickUpAddress}</p>
-            </div>
-            <MapPin size={13} className="text-zinc-400 shrink-0 mt-1" />
-          </div>
-          <div className="flex gap-3 px-6 py-4">
-            <div className="flex flex-col items-center shrink-0 pt-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Arrivée</p>
-              <p className="text-sm font-semibold text-zinc-900 truncate">{booking.dropAddress}</p>
-            </div>
-            <Navigation size={13} className="text-zinc-400 shrink-0 mt-1" />
-          </div>
-        </div>
-        <div className="px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
-            {VEHICLE_ICON[vehicleType] ?? <Car size={13} />}
-            <span>{VEHICLE_LABEL[vehicleType] ?? vehicleType}</span>
-            <span className="mx-1">·</span>
-            <Banknote size={11} />
-            <span>{booking.paymentStatus}</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-black text-zinc-400">MAD</span>
-            <span className="text-2xl font-black text-zinc-900">{booking.fare}</span>
-          </div>
-        </div>
-      </motion.div>
-
-    </div>
-  )
-}
-
-// ─── PARTNER BOOKING CARD ─────────────────────────────────────────────────────
-
-function BookingCard({ booking }: { booking: PartnerBooking }) {
-  const cfg = STATUS_CONFIG[booking.bookingStatus]
-  const vehicleType = booking.vehicle?.type ?? "other"
-  const isActive = ACTIVE.includes(booking.bookingStatus)
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
-    >
-      {/* Header gradient */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-200 rounded-full flex items-center justify-center shrink-0">
-              <UserIcon size={16} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {booking.user?.name ?? booking.user?.email ?? "Client"}
-              </p>
-              {booking.userMobileNumber && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Phone size={11} className="text-gray-400" />
-                  <span className="text-xs text-gray-500">{booking.userMobileNumber}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${cfg.color}`}>
-            {cfg.label}
-          </span>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-3">
-        {/* Véhicule */}
-        <div className="bg-gray-50 rounded-lg p-2 flex items-center gap-2 text-xs text-gray-600">
-          <span className="text-gray-500 flex items-center">{VEHICLE_ICON[vehicleType] ?? <Car size={14} />}</span>
-          <span>
-            {booking.vehicle?.model ?? VEHICLE_LABEL[vehicleType] ?? vehicleType}
-            {" • "}
-            {booking.vehicle?.number ?? "—"}
-          </span>
-        </div>
-
-        {/* Itinéraire */}
-        <div className="bg-zinc-50 border border-zinc-100 rounded-xl overflow-hidden">
-          <div className="flex gap-3 px-4 py-3 border-b border-zinc-100">
-            <div className="flex flex-col items-center shrink-0 pt-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white ring ring-emerald-200" />
-              <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 10 }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Départ</p>
-              <p className="text-xs font-semibold text-zinc-900 truncate">{booking.pickUpAddress}</p>
-            </div>
-            <MapPin size={12} className="text-emerald-400 shrink-0 mt-1" />
-          </div>
-          <div className="flex gap-3 px-4 py-3">
-            <div className="shrink-0 pt-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-zinc-900 border-2 border-white ring ring-zinc-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Arrivée</p>
-              <p className="text-xs font-semibold text-zinc-900 truncate">{booking.dropAddress}</p>
-            </div>
-            <MapPin size={12} className="text-zinc-400 shrink-0 mt-1" />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[10px] text-zinc-400 font-medium">{formatDate(booking.createdAt)}</p>
-            {isActive && (
-              <Link
-                href={`?bookingId=${booking._id}`}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600
-                  bg-blue-50 hover:bg-blue-100 transition-colors px-2.5 py-1 rounded-full"
-              >
-                <Navigation size={10} />
-                Voir le suivi
-              </Link>
-            )}
-          </div>
-          <div className="flex items-baseline gap-1 shrink-0">
-            <span className="text-[10px] font-black text-zinc-400">MAD</span>
-            <span className="text-lg font-black text-zinc-900">{booking.fare}</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-// ─── PARTNER BOOKINGS LIST ────────────────────────────────────────────────────
-
-const FILTER_OPTIONS: { label: string; value: BookingStatus | "all" }[] = [
-  { label: "Toutes",               value: "all" },
-  { label: "Demandée",             value: "requested" },
-  { label: "En attente paiement",  value: "awaiting_payment" },
-  { label: "Confirmée",            value: "confirmed" },
-  { label: "En cours",             value: "started" },
-  { label: "Terminée",             value: "completed" },
-  { label: "Annulée",              value: "cancelled" },
-  { label: "Rejetée",              value: "rejected" },
-  { label: "Expirée",              value: "expired" },
-]
-
-function PartnerBookingsList() {
-  const [bookings, setBookings] = useState<PartnerBooking[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [error,   setError]     = useState<string | null>(null)
-  const [filter,  setFilter]    = useState<BookingStatus | "all">("all")
-
-  const fetchBookings = async () => {
-    try {
-      const { data } = await axios.get("/api/partner/bookings")
-      setBookings(data)
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err))
-        setError(err.response?.data?.message ?? "Erreur lors du chargement.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchBookings() }, [])
-
-  useEffect(() => {
-    const hasActive = bookings.some(b => ACTIVE.includes(b.bookingStatus))
-    if (!hasActive) return
-    const id = setInterval(fetchBookings, 5000)
-    return () => clearInterval(id)
-  }, [bookings])
-
-  const filtered = filter === "all"
-    ? bookings
-    : bookings.filter(b => b.bookingStatus === filter)
-
-  return (
-    <>
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mb-6"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-              <Car size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Réservations partenaires</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {loading
-                  ? "Chargement..."
-                  : `${bookings.length} trajet${bookings.length !== 1 ? "s" : ""} attribué${bookings.length !== 1 ? "s" : ""}`
-                }
-              </p>
-            </div>
-          </div>
-          <select
-            value={filter}
-            onChange={e => setFilter(e.target.value as BookingStatus | "all")}
-            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 bg-white
-              text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              cursor-pointer shrink-0"
-          >
-            {FILTER_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-      </motion.div>
-
-      {error && (
-        <div className="flex items-center gap-2 text-red-500 text-xs font-medium bg-red-50
-          border border-red-100 rounded-2xl px-4 py-3 mb-6">
-          <AlertCircle size={13} className="shrink-0" />{error}
-        </div>
-      )}
-
-      {loading && (
-        <div className="flex justify-center py-24">
-          <Loader2 size={28} className="text-zinc-400 animate-spin" />
-        </div>
-      )}
-
-      {!loading && filtered.length === 0 && !error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-24 text-center gap-3"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-zinc-200 flex items-center justify-center">
-            <Star size={24} className="text-zinc-400" />
-          </div>
-          <p className="text-zinc-900 font-black text-lg">Aucun trajet</p>
-          <p className="text-zinc-400 text-sm font-medium">
-            {filter === "all" ? "Vos trajets apparaîtront ici." : "Aucun trajet pour ce filtre."}
-          </p>
-        </motion.div>
-      )}
-
-      {!loading && filtered.length > 0 && (
-        <AnimatePresence>
-          <motion.div className="space-y-4">
-            {filtered.map(b => <BookingCard key={b._id} booking={b} />)}
-          </motion.div>
-        </AnimatePresence>
-      )}
-    </>
-  )
-}
-
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
-
-function BookingsContent() {
-  const params    = useSearchParams()
-  const bookingId = params.get("bookingId")
-
-  return (
-    <div className="min-h-screen bg-zinc-100 px-4 py-12">
-      <div className="max-w-3xl mx-auto">
-        {bookingId
-          ? <ClientTrackingView bookingId={bookingId} />
-          : <PartnerBookingsList />
-        }
       </div>
     </div>
-  )
-}
-
-export default function BookingsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-zinc-100">
-        <Loader2 size={28} className="text-zinc-400 animate-spin" />
-      </div>
-    }>
-      <BookingsContent />
-    </Suspense>
   )
 }
