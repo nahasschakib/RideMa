@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   APIProvider,
   Map,
@@ -11,21 +11,53 @@ import {
 type LatLng = { lat: number; lng: number }
 
 interface MapViewProps {
-  driverPos: [number, number] | null
-  pickupPos: [number, number]
-  dropPos: [number, number]
+  driverLocation: [number, number] | null
+  pickupLocation: [number, number]
+  dropLocation: [number, number]
 }
 
-function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
+function toRad(deg: number) { return deg * (Math.PI / 180) }
+
+function getBearing(prev: LatLng, curr: LatLng): number {
+  const dLng = toRad(curr.lng - prev.lng)
+  const lat1 = toRad(prev.lat)
+  const lat2 = toRad(curr.lat)
+  const y = Math.sin(dLng) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+}
+
+function getDistance(a: LatLng, b: LatLng): number {
+  const R = 6371
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const x = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+}
+
+function MapContent({ driverLocation, pickupLocation, dropLocation }: MapViewProps) {
   const map = useMap()
   const routesLib = useMapsLibrary("routes")
   const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
+  const [heading, setHeading] = useState(0)
+  const prevDriverRef = useRef<LatLng | null>(null)
 
-  const pickup: LatLng = { lat: pickupPos[0], lng: pickupPos[1] }
-  const drop: LatLng = { lat: dropPos[0], lng: dropPos[1] }
-  const driver: LatLng | null = driverPos
-    ? { lat: driverPos[0], lng: driverPos[1] }
+  const pickup: LatLng = { lat: pickupLocation[0], lng: pickupLocation[1] }
+  const drop: LatLng = { lat: dropLocation[0], lng: dropLocation[1] }
+  const driver: LatLng | null = driverLocation
+    ? { lat: driverLocation[0], lng: driverLocation[1] }
     : null
+
+  // Met à jour le cap de déplacement dès que la position change (seuil 5m pour éviter le jitter GPS)
+  useEffect(() => {
+    if (!driver) return
+    if (prevDriverRef.current) {
+      const dist = getDistance(prevDriverRef.current, driver)
+      if (dist > 0.005) setHeading(getBearing(prevDriverRef.current, driver))
+    }
+    prevDriverRef.current = { ...driver }
+  }, [driverLocation?.[0], driverLocation?.[1]]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // DirectionsRenderer: crée + demande la route pickup → drop
   useEffect(() => {
@@ -58,7 +90,7 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
       renderer.setMap(null)
       rendererRef.current = null
     }
-  }, [map, routesLib, pickupPos[0], pickupPos[1], dropPos[0], dropPos[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, routesLib, pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1]]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ajuste la vue pour inclure tous les markers
   useEffect(() => {
@@ -68,7 +100,7 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
     bounds.extend(drop)
     if (driver) bounds.extend(driver)
     map.fitBounds(bounds, { top: 80, bottom: 80, left: 60, right: 60 })
-  }, [map, pickupPos[0], pickupPos[1], dropPos[0], dropPos[1], driverPos]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1], driverLocation]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -92,14 +124,25 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
         </div>
       </AdvancedMarker>
 
-      {/* Marker conducteur (bleu, GPS navigateur) */}
+      {/* Marker conducteur — cercle indigo avec icône voiture orientée selon le cap */}
       {driver && (
         <AdvancedMarker position={driver} title="Conducteur">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 4px 12px rgba(0,0,0,.3))" }}>
-            <div style={{ background: "#2563eb", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "20px", whiteSpace: "nowrap" }}>
-              🚗 Conducteur
-            </div>
-            <div style={{ width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid #2563eb" }} />
+          <div style={{
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: "#4f46e5",
+            border: "3px solid white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            filter: "drop-shadow(0 4px 14px rgba(79,70,229,.55))",
+            transform: `rotate(${heading}deg)`,
+            transition: "transform 0.6s ease",
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white">
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+            </svg>
           </div>
         </AdvancedMarker>
       )}
@@ -107,10 +150,10 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
   )
 }
 
-export default function MapView({ driverPos, pickupPos, dropPos }: MapViewProps) {
-  const center = driverPos
-    ? { lat: driverPos[0], lng: driverPos[1] }
-    : { lat: pickupPos[0], lng: pickupPos[1] }
+export default function MapView({ driverLocation, pickupLocation, dropLocation }: MapViewProps) {
+  const center = driverLocation
+    ? { lat: driverLocation[0], lng: driverLocation[1] }
+    : { lat: pickupLocation[0], lng: pickupLocation[1] }
 
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}>
@@ -120,7 +163,7 @@ export default function MapView({ driverPos, pickupPos, dropPos }: MapViewProps)
         mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "ridema_map"}
         style={{ width: "100%", height: "100%" }}
       >
-        <MapContent driverPos={driverPos} pickupPos={pickupPos} dropPos={dropPos} />
+        <MapContent driverLocation={driverLocation} pickupLocation={pickupLocation} dropLocation={dropLocation} />
       </Map>
     </APIProvider>
   )

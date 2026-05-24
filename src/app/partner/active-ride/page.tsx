@@ -67,7 +67,7 @@ export default function ActiveRidePage() {
     }
   }
 
-  useEffect(() => {
+   useEffect(() => {
     fetchActive()
     intervalRef.current = setInterval(fetchActive, 5000)
     return () => {
@@ -93,7 +93,7 @@ export default function ActiveRidePage() {
         }
       },
       () => {},
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true ,maximumAge: 2000, timeout: 10000}
     )
     return () => {
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
@@ -152,8 +152,11 @@ export default function ActiveRidePage() {
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-zinc-100">
       {/* Carte */}
-      <div className="flex-1 h-64 lg:h-full">
-        <MapView driverPos={driverPos} pickupPos={pickupPos} dropPos={dropPos} />
+      <div className=" relative flex-1 h-full z-0">
+        <MapView 
+        driverLocation={driverPos} 
+        pickupLocation={pickupPos} 
+        dropLocation={dropPos} />
       </div>
 
       {/* Panneau infos */}
