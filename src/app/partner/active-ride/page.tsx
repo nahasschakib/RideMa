@@ -2,9 +2,11 @@
 import dynamic from "next/dynamic"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import axios, { AxiosError } from "axios"
 import { Car, Loader2, MapPin, Phone } from "lucide-react"
 import { BookingStatus, PaymentStatus } from "@/models/booking.model"
+import { getSocket } from "@/lib/socket"
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false })
 
@@ -41,12 +43,16 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 export default function ActiveRidePage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [booking, setBooking] = useState<IActiveBooking | null | undefined>(undefined)
+  const bookingRef = useRef<IActiveBooking | null>(null)
   const [driverPos, setDriverPos] = useState<[number, number] | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const watchRef = useRef<number | null>(null)
+
+  useEffect(() => { bookingRef.current = booking ?? null }, [booking])
 
   const fetchActive = async () => {
     try {
@@ -71,15 +77,28 @@ export default function ActiveRidePage() {
 
   useEffect(() => {
     if (!navigator.geolocation) return
+    const socket = getSocket()
     watchRef.current = navigator.geolocation.watchPosition(
-      (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+        setDriverPos(coords)
+        const b = bookingRef.current
+        if (session?.user?.id && b?.user?._id) {
+          socket.emit("update-location", {
+            userId: session.user.id,
+            clientId: b.user._id,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          })
+        }
+      },
       () => {},
       { enableHighAccuracy: true }
     )
     return () => {
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
     }
-  }, [])
+  }, [session?.user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAction = async () => {
     if (!booking) return
@@ -140,7 +159,7 @@ export default function ActiveRidePage() {
       {/* Panneau infos */}
       <div className="w-full lg:w-96 bg-white flex flex-col overflow-y-auto shadow-2xl">
         {/* En-tête client */}
-        <div className="bg-linear-to-br from-zinc-900 to-zinc-700 p-6 text-white">
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-700 p-6 text-white">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center shrink-0">
               <span className="text-xl font-bold">{initials}</span>

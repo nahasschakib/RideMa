@@ -33,6 +33,8 @@ export async function GET(
         _id:                booking._id,
         pickUpAddress:      booking.pickUpAddress,
         dropAddress:        booking.dropAddress,
+        pickUpLocation:     booking.pickUpLocation,
+        dropLocation:       booking.dropLocation,
         fare:               booking.fare,
         bookingStatus:      booking.bookingStatus,
         paymentStatus:      booking.paymentStatus,

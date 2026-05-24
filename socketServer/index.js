@@ -58,15 +58,21 @@ await User.findByIdAndUpdate(userId,{
 })
 })
 
-socket.on("update-location",async ({userId,latitude,longitude})=>{
-  const locationPayload={
-    location:{
-      type:"Point",
-      coordinates:[longitude,latitude]
-    }
+socket.on("update-location", async ({ userId, clientId, latitude, longitude }) => {
+  const locationPayload = {
+    location: { type: "Point", coordinates: [longitude, latitude] }
   }
   await User.findByIdAndUpdate(userId, locationPayload)
-  await Vehicle.findOneAndUpdate({owner:userId, status:"approved"}, locationPayload)
+  await Vehicle.findOneAndUpdate({ owner: userId, status: "approved" }, locationPayload)
+
+  if (clientId) {
+    try {
+      const client = await User.findById(clientId)
+      if (client?.socketId) {
+        io.to(client.socketId).emit("location-update", { latitude, longitude })
+      }
+    } catch {}
+  }
 })
 
 

@@ -238,7 +238,7 @@ export default function Page() {
                 >
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
                     {/* Header card */}
-                    <div className="flex items-center gap-3 p-4 bg-linear-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-200 shrink-0 border-2 border-white shadow-sm flex items-center justify-center">
                         <User className="w-6 h-6 text-blue-600" />
                       </div>
@@ -333,7 +333,7 @@ export default function Page() {
                        {b.bookingStatus !== "completed" && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => router.push("/user/active-ride")}
+                          onClick={() => router.push(`/user/active-ride?bookingId=${b._id}`)}
                           className="flex items-center gap-1 text-sm font-medium
                            text-blue-700 hover:text-blue-70 bg-blue-100 hover:bg-blue-100 transition-colors px-4 py-1.5 rounded-lg"
                           >
