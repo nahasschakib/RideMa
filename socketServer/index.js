@@ -63,7 +63,10 @@ socket.on("update-location", async ({ userId, clientId, latitude, longitude }) =
     location: { type: "Point", coordinates: [longitude, latitude] }
   }
   await User.findByIdAndUpdate(userId, locationPayload)
-  await Vehicle.findOneAndUpdate({ owner: userId, status: "approved" }, locationPayload)
+  await Vehicle.findOneAndUpdate(
+    { owner: userId, status: "approved" },
+    { $set: { ...locationPayload, isAvailable: true } }
+  )
 
   if (clientId) {
     try {
@@ -77,13 +80,16 @@ socket.on("update-location", async ({ userId, clientId, latitude, longitude }) =
 
 
 
-socket.on("disconnect",async ()=>{
-  if(!socket.userId) return;
-  await User.findByIdAndUpdate(socket.userId,{
-  socketId:null,
-  isOnline:false
-})
-
+socket.on("disconnect", async () => {
+  if (!socket.userId) return;
+  await User.findByIdAndUpdate(socket.userId, {
+    socketId: null,
+    isOnline: false
+  })
+  await Vehicle.findOneAndUpdate(
+    { owner: socket.userId, status: "approved" },
+    { $set: { isAvailable: false } }
+  )
 })
 })
 

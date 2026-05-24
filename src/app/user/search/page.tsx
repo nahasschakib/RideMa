@@ -3,7 +3,7 @@ import React, { useCallback, useState, Suspense, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowLeft, Bike, Car, LucideIcon, MapPin, Navigation, RefreshCcw, Search, Truck, Zap } from "lucide-react";
-import SearchMap from "@/app/components/SearchMap";
+import SearchMap, { DriverMarker } from "@/app/components/SearchMap";
 import axios from "axios";
 import VehicleCard from "@/app/components/VehicleCard";
 import { vehicleType } from "@/models/vehicle.model";
@@ -33,6 +33,7 @@ const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
     status:"approved"|"rejected"|"pending",
     rejectionReason?:string,
     isActive:boolean,
+    location?: { type: "Point"; coordinates: [number, number] },
     createdAt:Date,
     updatedAt:Date
 
@@ -56,6 +57,19 @@ function SearchContent() {
   const [vehicles, setVehicles] = useState<IVehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const driverMarkers: DriverMarker[] = vehicles
+    .filter(v => v.location?.coordinates)
+    .map(v => ({
+      id: String(v._id),
+      // GeoJSON stores [lng, lat] — invert for Google Maps
+      lng: v.location!.coordinates[0],
+      lat: v.location!.coordinates[1],
+      baseFare: v.baseFare,
+      pricePerKM: v.pricePerKM,
+      waitingCharge: v.waitingCharge,
+      model: v.model,
+    }));
 
   const meta = VEHICLE_META[vehicle];
 
@@ -110,6 +124,7 @@ function SearchContent() {
           dropLng={dropLong}
           onChange={(p, d) => { setPickup(p); setDrop(d); }}
           onDistance={handleDistance}
+          drivers={driverMarkers}
         />
         <AnimatePresence>
           {ready && km !== null && (
