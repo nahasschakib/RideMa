@@ -12,10 +12,11 @@ import { signOut } from "next-auth/react";
 import { setUserData } from "@/redux/userSlice";
 import { useSession } from "next-auth/react";
 import axios from "axios";
+import { getSocket } from "@/lib/socket";
 
 const Navbar_Items = [
   { label: "Acceuil", href: "/" },
-  { label: "Réservations", href: "/reservations" },
+  { label: "Réservations", href: "/user/bookings" },
   { label: "À propos de nous", href: "/a-propos" },
   { label: "Contacts", href: "/contacts" },
 ];
@@ -25,7 +26,7 @@ function Navbar() {
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState();
+  const [pendingCount, setPendingCount] = useState(0);
   const { userData } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -61,7 +62,18 @@ function Navbar() {
 
     fetchCount();
     const interval = setInterval(fetchCount, 15000);
-    return () => clearInterval(interval);
+
+    const socket = getSocket();
+    socket.on("new-booking", () => fetchCount());
+
+    const onExternalChange = () => fetchCount();
+    window.addEventListener("pending-count-changed", onExternalChange);
+
+    return () => {
+      clearInterval(interval);
+      socket.off("new-booking");
+      window.removeEventListener("pending-count-changed", onExternalChange);
+    };
   }, [userData?.role]);
 
   return (
@@ -112,7 +124,7 @@ function Navbar() {
                 <Link
                   className="relative text-sm font-medium text-gray-300
                hover:text-white transition"
-                  href={"/partner/reservations"}
+                  href={"/partner/bookings"}
                 >
                   Réservations
                 </Link>
@@ -127,17 +139,10 @@ function Navbar() {
             ) : (
               <>
                 {Navbar_Items.map((i, index) => {
-                  let href;
-                  if (i.label == "Acceuil") {
-                    href = `/`;
-                  } else {
-                    href = `/${i.label.toLowerCase()}`;
-                  }
-
-                  const active = href == pathName;
+                  const active = i.href == pathName;
                   return (
                     <Link
-                      href={href}
+                      href={i.href}
                       key={index}
                       className={`text-sm font-medium transition ${
                         active ? "text-white" : "text-gray-400 hover:text-white"
@@ -294,24 +299,15 @@ function Navbar() {
              bg-[#0B0B0B] rounded-2xl shadow-2xl z-40 md:hidden overflow-hidden"
             >
               <div className="flex flex-col divide-y divide-white/10 py-20">
-                {Navbar_Items.map((i, index) => {
-                  let href;
-                  if (i.label == "Acceuil") {
-                    href = `/`;
-                  } else {
-                    href = `/${i.label.toLowerCase()}`;
-                  }
-
-                  return (
-                    <Link
-                      href={href}
-                      key={index}
-                      className="px-6 py-4 text-gray-300 hover:bg-white/5"
-                    >
-                      {i.label}
-                    </Link>
-                  );
-                })}
+                {Navbar_Items.map((i, index) => (
+                  <Link
+                    href={i.href}
+                    key={index}
+                    className="px-6 py-4 text-gray-300 hover:bg-white/5"
+                  >
+                    {i.label}
+                  </Link>
+                ))}
               </div>
             </motion.div>
           </>

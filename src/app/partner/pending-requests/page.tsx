@@ -5,6 +5,7 @@ import axios, { AxiosError } from "axios";
 import { BookingStatus, PaymentStatus } from "@/models/booking.model";
 import { Clock, Loader2, MapPin, Navigation } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getSocket } from "@/lib/socket";
 
  interface IBooking {
   _id:string
@@ -89,14 +90,18 @@ function Page() {
     return () => clearInterval(interval);
   }, []);
 
+  const notifyBadge = () =>
+    window.dispatchEvent(new Event("pending-count-changed"));
+
   const handleAccept = async (id: string) => {
     if (actionLoading) return;
     setActionError(null);
     try {
       setActionLoading(id);
       await axios.post(`/api/partner/bookings/${id}/accept`);
-      router.push(`/partner/bookings?bookingId=${id}`)
       setBookings((prev) => prev.filter((b) => b._id !== id));
+      notifyBadge();
+      router.push(`/partner/bookings?bookingId=${id}`);
     } catch (error) {
       if (error instanceof AxiosError) {
         const code = error.response?.data?.code;
@@ -119,12 +124,24 @@ function Page() {
       setActionLoading(id);
       await axios.post(`/api/partner/bookings/${id}/reject`);
       setBookings((prev) => prev.filter((b) => b._id !== id));
+      notifyBadge();
     } catch (error) {
       console.log(error);
     } finally {
       setActionLoading(null);
     }
   };
+
+  useEffect(()=>{
+    const socket =getSocket()
+    socket.on("new-booking",(data)=>{
+      setBookings((prev)=>[data,...prev])
+      })
+      return ()=>{
+        socket.off("new-booking")
+      }
+  },[])
+
   return (
     <div className="min-h-screen bg-[#f4f5f7]">
       <div className="bg-white border-b border-gray-200">

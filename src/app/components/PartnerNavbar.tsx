@@ -14,7 +14,7 @@ import axios from "axios";
 const PARTNER_NAV = [
   { label: "Demandes en attente", href: "/partner/pending-requests", badge: true },
   { label: "Mes réservations", href: "/partner/bookings" },
-  { label: "Trajet actif", href: "/partner/active-trip" },
+  { label: "Trajet actif", href: "/partner/active-ride" },
   { label: "Wallet", href: "/partner/wallet" },
 ];
 

@@ -31,19 +31,22 @@ cors:{
  }
 })
 
-// Endpoint interne : Next.js → socket server → client driver
-app.post("/emit", (req, res) => {
-  const { userId, event, data } = req.body;
-  let sent = false;
-  for (const [, socket] of io.sockets.sockets) {
-    if (socket.userId === userId) {
-      socket.emit(event, data);
-      sent = true;
-      break;
+app.post("/emit", async (req,res)=>{
+  const { userId, event, data }= req.body;
+  try{
+    const user = await User.findById(userId);
+    if(user && user.socketId){
+      io.to(user.socketId).emit(event, data);
+      res.json({ success: true });
+    }else{
+      res.json({ success: false, message: "User not connected" });
     }
+  }catch(error){
+    return res.status(500).json({ success: false,"error": error.message });
   }
-  res.json({ sent });
-});
+
+})
+
 
 io.on("connection", (socket) => {
 

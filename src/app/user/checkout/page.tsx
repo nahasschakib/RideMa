@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { AlertCircle, ArrowRight, Banknote, Bike, Car, CheckCircle, Clock, CreditCard, Globe, Loader2, LucideIcon, MapPin, Navigation, PhoneCall, Shield, Star, Truck, Wallet, XCircle } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios, { AxiosError } from 'axios'
+import { getSocket } from '@/lib/socket'
 
 const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
   car:        { label: "Voiture", Icon: Car   },
@@ -87,6 +88,7 @@ function CheckoutContent() {
           } else {
             setStatus(prev => {
               if (prev === "idle") return prev
+              if (prev === "started") return "completed"
               const TERMINAL: Status[] = ["cancelled", "completed", "expired", "rejected"]
               return TERMINAL.includes(prev) ? prev : "idle"
             })
@@ -123,6 +125,20 @@ function CheckoutContent() {
     },3000)
     return()=>{clearTimeout(t)}
   },[status])
+
+    useEffect(()=>{
+      const socket =getSocket()
+      socket.on("accept_booking",(data)=>{
+        setStatus(data)
+        })
+        socket.on("reject_booking",(data)=>{
+        setStatus(data)
+        })
+        return ()=>{
+          socket.off("accept_booking")
+          socket.off("reject_booking")
+        }
+    },[])
 
   const handleRequest = async () => {
     if (!driverId || !vehicleId) {
@@ -210,6 +226,8 @@ function CheckoutContent() {
     setBookingId(null)
     setError(null)
   }
+
+ 
 
   return (
     <div className="min-h-screen bg-zinc-100 px-4 py-12">
@@ -310,7 +328,7 @@ function CheckoutContent() {
               ) : (
                 <AnimatePresence mode="wait">
 
-                  {status === "idle" && (
+                  {(status == "idle" || status == "rejected") && (
                     <motion.div
                       key="idle"
                       initial={{ opacity: 0, y: 12 }}

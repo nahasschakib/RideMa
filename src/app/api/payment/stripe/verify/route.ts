@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 async function emitSocket(userId: string, event: string, data: object) {
-  const url = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:5000"}/emit`;
+  const url = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
   try {
     await fetch(url, {
       method: "POST",

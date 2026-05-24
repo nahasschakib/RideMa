@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
+import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -20,6 +21,13 @@ export async function POST(
         booking.bookingStatus="rejected"
       
         await booking.save()
+
+         await axios.post(`${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`, {
+            userId: booking.user.toString(),
+            event: "reject_booking",
+            data: booking.bookingStatus,
+        });
+
         return NextResponse.json(
                 {success:"true"},
                 {status:200}

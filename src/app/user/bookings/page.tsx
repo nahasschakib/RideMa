@@ -120,7 +120,7 @@ export default function Page() {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await axios.get("/api/partner/bookings");
+        const { data } = await axios.get("/api/user/bookings");
         setBookings(data);
       } catch (err) {
         if (err instanceof AxiosError) {
@@ -163,12 +163,11 @@ export default function Page() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  Réservations partenaires
+                  Mes réservations
                 </h1>
                 <p className="text-gray-500 text-sm mt-1">
                   {bookings.length}{" "}
-                  {bookings.length === 1 ? "Trajet" : "Trajets"} qui vous est
-                  attribué
+                  {bookings.length === 1 ? "course réservée" : "courses réservées"}
                 </p>
               </div>
             </div>
@@ -222,8 +221,7 @@ export default function Page() {
                 Aucune réservation pour le moment
               </h2>
               <p className="text-gray-500 text-sm mt-1">
-                Lorsque les clients réservent des courses, celles-ci
-                apparaîtront ici.
+                Vos courses réservées apparaîtront ici.
               </p>
             </div>
           )}
@@ -247,7 +245,7 @@ export default function Page() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-gray-900">
-                            {b.user?.name?.toUpperCase() ?? "Client"}
+                            {b.driver?.name?.toUpperCase() ?? "Conducteur"}
                           </h3>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium
@@ -258,7 +256,7 @@ export default function Page() {
                         </div>
                         <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
                           <Phone className="w-3 h-3" />
-                          <span>{b.userMobileNumber ?? "—"}</span>
+                          <span>{b.driverMobileNumber ?? "—"}</span>
                         </div>
                       </div>
                     </div>
@@ -332,14 +330,14 @@ export default function Page() {
                           {PAYMENT_LABELS[b.paymentStatus] ?? b.paymentStatus}
                         </span>
                       </div>
-                       {b.bookingStatus === "completed" || b.bookingStatus === "confirmed" || b.bookingStatus === "started" && (
+                       {b.bookingStatus !== "completed" && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => router.push("/partner/active-ride")}
+                          onClick={() => router.push("/user/active-ride")}
                           className="flex items-center gap-1 text-sm font-medium
                            text-blue-700 hover:text-blue-70 bg-blue-100 hover:bg-blue-100 transition-colors px-4 py-1.5 rounded-lg"
                           >
-                          <span className="text-xs text-blue-700">Details</span>
+                          <span className="text-xs text-blue-700">Suivre</span>
                           <ChevronRightIcon className="w-4 h-4" />
                         </button>
                       </div>

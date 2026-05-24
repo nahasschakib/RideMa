@@ -15,14 +15,17 @@ export async function GET(req:NextRequest){
                 }
         
                 const partner = await User.findOne({email:session.user.email})
+                console.log("[pending] session email:", session.user.email)
+                console.log("[pending] partner found:", partner ? partner._id.toString() : "NULL")
                   if(!partner){
                     return NextResponse.json({message:"partner not found"},{status:400})
                   }
-        
+
                 const bookings= await Booking.find({
                     driver:partner._id,
                     bookingStatus:"requested"
                 })
+                console.log("[pending] bookings count:", bookings.length)
                 return NextResponse.json(bookings,{status:200})
         
     } catch (error) {

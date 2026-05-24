@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
+import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -77,6 +78,16 @@ export async function POST(req: NextRequest) {
       driverMobileNumber: driver.mobileNumber ?? "",
       bookingStatus:     "requested",
     });
+
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`, {
+        userId: driverId,
+        event: "new-booking",
+        data: { bookingId: booking._id, pickUpAddress, dropAddress, fare },
+      });
+    } catch {
+      console.warn("[socket] Server unavailable — skipped");
+    }
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {

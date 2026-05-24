@@ -5,7 +5,7 @@ import Wallet from "@/models/wallet.model";
 import { NextRequest, NextResponse } from "next/server";
 
 async function emitSocket(userId: string, event: string, data: object) {
-  const url = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:5000"}/emit`;
+  const url = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
   try {
     await fetch(url, {
       method: "POST",
@@ -113,6 +113,11 @@ export async function POST(
     }
 
     await booking.save();
+
+    await emitSocket(booking.user.toString(), "booking:completed", {
+      bookingId: id,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
