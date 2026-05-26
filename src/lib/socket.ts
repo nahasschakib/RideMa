@@ -7,7 +7,7 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL);
+    socket = io(SOCKET_URL);
   }
   return socket;
 };

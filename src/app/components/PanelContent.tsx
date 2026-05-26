@@ -9,6 +9,7 @@ import { RootState } from "@/redux/store";
 import { PaymentStatus } from "@/models/booking.model";
 
 interface PopulatedBooking {
+  _id: string;
   user: { _id: string; name?: string } | null;
   driver: { _id: string; name?: string };
   fare?: number;
@@ -163,7 +164,12 @@ function PanelContent({
         className="mx-5 lg:mx-6 overflow-hidden"
         >
             <div className="rounded-2xl overflow-hidden border border-zinc-100 h-115">
-<RideChat />
+        <RideChat 
+        currentRole={currentRole}
+        bookingId={booking._id}
+        userName={booking?.user?.name || "customer"}
+        driverName={booking?.driver?.name || "driver"}
+        />
             </div>
 
 

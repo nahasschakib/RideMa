@@ -14,6 +14,13 @@ interface MapViewProps {
   driverPos: [number, number] | null
   pickupPos: [number, number]
   dropPos: [number, number]
+  mapStatus: string
+  onStats: (data: {
+    distanceToPickup: number
+    etaToPickup: number
+    distanceToDrop: number
+    etaToDrop: number
+  }) => void
 }
 
 function toRad(deg: number) { return deg * (Math.PI / 180) }
@@ -36,7 +43,7 @@ function getDistance(a: LatLng, b: LatLng): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
 }
 
-function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
+function MapContent({ driverPos, pickupPos, dropPos, onStats }: MapViewProps) {
   const map = useMap()
   const routesLib = useMapsLibrary("routes")
   const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
@@ -84,6 +91,15 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
     map.fitBounds(bounds, { top: 80, bottom: 80, left: 60, right: 60 })
   }, [map, pickupPos[0], pickupPos[1], dropPos[0], dropPos[1], driverPos]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    onStats?.({
+      distanceToPickup: driver ? getDistance(driver, pickup) : 0,
+      etaToPickup: driver ? (getDistance(driver, pickup) / 40) * 60 : 0,
+      distanceToDrop: driver ? getDistance(driver, drop) : 0,
+      etaToDrop: driver ? (getDistance(driver, drop) / 40) * 60 : 0,
+    })
+  }, [driverPos?.[0], driverPos?.[1], pickupPos[0], pickupPos[1], dropPos[0], dropPos[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <AdvancedMarker position={pickup} title="Départ">
@@ -126,7 +142,7 @@ function MapContent({ driverPos, pickupPos, dropPos }: MapViewProps) {
   )
 }
 
-export default function MapView({ driverPos, pickupPos, dropPos }: MapViewProps) {
+export default function MapView({ driverPos, pickupPos, dropPos, onStats, mapStatus }: MapViewProps) {
   const center = driverPos
     ? { lat: driverPos[0], lng: driverPos[1] }
     : { lat: pickupPos[0], lng: pickupPos[1] }
@@ -136,10 +152,10 @@ export default function MapView({ driverPos, pickupPos, dropPos }: MapViewProps)
       <Map
         defaultZoom={13}
         defaultCenter={center}
-        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "ridema_map"}
+        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "MaRide_map"}
         style={{ width: "100%", height: "100%" }}
       >
-        <MapContent driverPos={driverPos} pickupPos={pickupPos} dropPos={dropPos} />
+        <MapContent driverPos={driverPos} pickupPos={pickupPos} dropPos={dropPos} onStats={onStats} mapStatus={mapStatus} />
       </Map>
     </APIProvider>
   )

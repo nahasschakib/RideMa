@@ -18,6 +18,7 @@ export async function GET(req: NextRequest){
         })
         .sort({ updatedAt: -1 })
         .populate("user", "name email")
+        .populate("driver", "name")
         .populate("vehicle", "type model number")
 
         if(!booking) return NextResponse.json(null,{status:200})
