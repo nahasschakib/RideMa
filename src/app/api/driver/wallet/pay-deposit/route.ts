@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
               currency: process.env.STRIPE_CURRENCY ?? "mad",
               unit_amount: Math.round(amount * 100),
               product_data: {
-                name: "Caution RideMa",
+                name: "Caution MaRide",
                 description: `Caution obligatoire conducteur — ${amount} MAD`,
               },
             },

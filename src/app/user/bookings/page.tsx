@@ -95,7 +95,7 @@ const STATUS_LABELS: Record<string, string> = {
 function getVehicleIcon(vehicleType?: string) {
   switch (vehicleType?.toLowerCase()) {
     case "bike":
-    case "motorcycle":
+    case "motocycle":
     case "scooter":
       return <Bike className="w-4 h-4 text-gray-400" />;
     case "truck":
@@ -333,7 +333,7 @@ export default function Page() {
                        {b.bookingStatus !== "completed" && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => router.push(`/user/active-ride?bookingId=${b._id}`)}
+                          onClick={() => router.push(`/user/ride/${b._id}`)}
                           className="flex items-center gap-1 text-sm font-medium
                            text-blue-700 hover:text-blue-70 bg-blue-100 hover:bg-blue-100 transition-colors px-4 py-1.5 rounded-lg"
                           >

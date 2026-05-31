@@ -153,7 +153,7 @@ export default function AuthModal({ open, onClose }: propType) {
                 </div>
                 <div className="mb-6 text-center">
                   <h1 className="text-3xl font-extrabold tracking-widest">
-                    RideMa
+                    MaRide
                   </h1>
                   <p className="mt-1 text-xs text-gray-500">
                     Réservation de véhicule Haute game

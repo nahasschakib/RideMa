@@ -14,7 +14,7 @@ export async function GET(req: NextRequest){
         const user = await User.findOne({email:session.user.email})
         const booking = await Booking.findOne({
             driver: user._id,
-            bookingStatus: { $in: ["confirmed", "started"] }
+            bookingStatus: { $in: ["confirmed", "started", "completed"] }
         })
         .sort({ updatedAt: -1 })
         .populate("user", "name email")

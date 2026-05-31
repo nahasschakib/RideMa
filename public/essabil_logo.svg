@@ -32,7 +32,7 @@
   <circle cx="123" cy="164" r="3" fill="#1A3C6E" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
 
   <!-- WORDMARK -->
-  <text x="232" y="108" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif, Arial, sans-serif;font-size:56px;font-weight:700;text-anchor:start;dominant-baseline:auto">RideMa</text>
+  <text x="232" y="108" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif, Arial, sans-serif;font-size:56px;font-weight:700;text-anchor:start;dominant-baseline:auto">MaRide</text>
 
   <!-- Sous-titre arabe السبيل (RTL positionné par ancrage droit) -->
   <text x="396" y="142" text-anchor="end" style="fill:rgb(232, 160, 32);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Arial, sans-serif;font-size:24px;font-weight:400;text-anchor:end;dominant-baseline:auto">السبيل</text>
@@ -105,7 +105,7 @@
   <circle cx="423" cy="268" r="2.5" fill="#1A3C6E" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
   <circle cx="423" cy="310" r="4.5" fill="#E8A020" style="fill:rgb(232, 160, 32);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
   <circle cx="423" cy="310" r="1.5" fill="#1A3C6E" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="417.62" y="279" font-size="22" letter-spacing="2" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif, Arial, sans-serif;font-size:56px;font-weight:700;text-anchor:start;dominant-baseline:auto">RideMa</text>
+  <text x="417.62" y="279" font-size="22" letter-spacing="2" style="fill:rgb(26, 60, 110);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif, Arial, sans-serif;font-size:56px;font-weight:700;text-anchor:start;dominant-baseline:auto">MaRide</text>
   <text x="466" y="300" font-size="14" style="fill:rgb(232, 160, 32);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Arial, sans-serif;font-size:24px;font-weight:400;text-anchor:start;dominant-baseline:auto">السبيل</text>
 
   <!-- Labels des variantes -->

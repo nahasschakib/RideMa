@@ -15,7 +15,7 @@ There is no test suite configured.
 
 ## Architecture Overview
 
-**RideMa** is a Next.js 16 multi-vendor vehicle rental platform (French-language UI). It supports three user roles — `user`, `partner`, and `admin` — with role-based routing enforced in middleware.
+**MaRide** is a Next.js 16 multi-vendor vehicle rental platform (French-language UI). It supports three user roles — `user`, `partner`, and `admin` — with role-based routing enforced in middleware.
 
 ### Role-Based Rendering
 

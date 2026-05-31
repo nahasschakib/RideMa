@@ -14,9 +14,11 @@ export default async function PartnerLayout({
   }
 
   return (
-    <>
+   <div className="h-screen flex flex-col overflow-hidden">
       <PartnerNavbar />
-      <div className="pt-20">{children}</div>
-    </>
+      <div className="flex-1 overflow-auto pt-20 mt-3">
+        {children}
+      </div>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ function Footer() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           <div>
-            <h2 className="text-2xl font-bold tracking-wide">RideMa</h2>
+            <h2 className="text-2xl font-bold tracking-wide">MaRide</h2>
             <p className="mt-4 text-gray-400 text-sm leading-relaxed">
               Réservez n&apos;importe quel véhicule, du vélo au camion.
               Propriétaires de confiance. Tarification transparente.
@@ -43,7 +43,7 @@ function Footer() {
               <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row
               justify-between items-center text-xs text-gray-500 gap-4">
                 <p>
-                  <span>©</span> {new Date().getFullYear()} RideMA. Tous
+                  <span>©</span> {new Date().getFullYear()} MaRide. Tous
                   droits réservés
                 </p>
              </div>

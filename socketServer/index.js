@@ -8,7 +8,7 @@ import Vehicle from "./models/vehicle.model.js"
 
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 const mongodbUrl = process.env.MONGODB_URL;
 
 const dbConnect =async ()=>{
@@ -76,6 +76,18 @@ socket.on("update-location", async ({ userId, clientId, latitude, longitude }) =
       }
     } catch {}
   }
+})
+
+socket.on("join-ride",(bookingId)=>{
+  console.log("join-ride",bookingId)
+  socket.join(`ride-${bookingId}`)
+})
+
+socket.on("driver-location-update",({bookingId,latitude,longitude,status})=>{
+io.to(`ride-${bookingId}`).emit("driver-location",{
+latitude,
+longitude,
+})
 })
 
 

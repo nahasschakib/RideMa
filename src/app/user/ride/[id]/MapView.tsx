@@ -49,7 +49,7 @@ function MapContent({ driverPos, pickupPos, dropPos, onStats }: MapViewProps) {
   const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
   const [heading, setHeading] = useState(0)
   const prevDriverRef = useRef<LatLng | null>(null)
-
+   const driverToPickupRef = useRef<google.maps.DirectionsRenderer | null>(null)
   const pickup: LatLng = { lat: pickupPos[0], lng: pickupPos[1] }
   const drop: LatLng = { lat: dropPos[0], lng: dropPos[1] }
   const driver: LatLng | null = driverPos
@@ -99,6 +99,56 @@ function MapContent({ driverPos, pickupPos, dropPos, onStats }: MapViewProps) {
       etaToDrop: driver ? (getDistance(driver, drop) / 40) * 60 : 0,
     })
   }, [driverPos?.[0], driverPos?.[1], pickupPos[0], pickupPos[1], dropPos[0], dropPos[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!map || !routesLib || !driver) {
+      driverToPickupRef.current?.setMap(null)
+      return
+    }
+     if (prevDriverRef.current) {
+    const dist = getDistance(prevDriverRef.current, driver)
+    if (dist < 0.05) return // moins de 50m → pas de recalcul
+  }
+ 
+    driverToPickupRef.current?.setMap(null)
+ 
+    const service = new routesLib.DirectionsService()
+    service.route(
+      {
+        origin: driver,
+        destination: pickup,
+        travelMode: routesLib.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === "OK" && result) {
+          const renderer = new routesLib.DirectionsRenderer({
+            suppressMarkers: true,
+            polylineOptions: {
+              strokeColor: "#6366f1",
+              strokeOpacity: 0,
+              icons: [{
+                icon: {
+                  path: "M 0,-1 0,1",
+                  strokeOpacity: 1,
+                  strokeWeight: 2.5,
+                  strokeColor: "#6366f1",
+                  scale: 4,
+                },
+                offset: "0",
+                repeat: "16px",
+              }],
+            },
+          })
+          renderer.setDirections(result)
+          renderer.setMap(map)
+          driverToPickupRef.current = renderer
+        }
+      }
+    )
+ 
+    return () => {
+      driverToPickupRef.current?.setMap(null)
+    }
+  }, [map, routesLib, driverPos?.[0], driverPos?.[1], pickupPos[0], pickupPos[1]]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

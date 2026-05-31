@@ -174,7 +174,7 @@ function SearchMap({ pickup, drop, pickupLat, pickupLng, dropLat, dropLng, onCha
         <Map
           defaultZoom={13}
           defaultCenter={CASABLANCA}
-          mapId="ridema_map"
+          mapId="MaRide_map"
           style={{ width: '100%', height: '100%' }}
           onTilesLoaded={(e) => {
             mapRef.current = e.map;

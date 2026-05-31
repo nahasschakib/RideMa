@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios, { AxiosError } from "axios";
 import { Car, ChevronUp, Loader2, MapPin, Phone, Zap } from "lucide-react";
@@ -109,7 +109,7 @@ export default function ActiveRidePage() {
   const [status, setStatus] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
+  const {id}=useParams()
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -125,8 +125,10 @@ export default function ActiveRidePage() {
 
   const fetchActive = async () => {
     try {
-      const { data } = await axios.get<IActiveBooking | null>(
-        "/api/partner/my-active",
+      const { data } = await axios.post<IActiveBooking | null>(
+        "/api/user/active-ride",{
+          bookingId:id
+        }
       );
       if (!data) {
         router.replace("/partner/pending-requests");
@@ -147,43 +149,20 @@ export default function ActiveRidePage() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(()=>{
-    if(!booking?._id) return;
-    const socket = getSocket()
-    socket.emit("join-ride",booking?._id)
-  },[booking?._id])
-
   const onChatToggle = () => {
     setChatOpen((prev) => !prev);
   };
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    const socket = getSocket();
-    watchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords: [number, number] = [
-          pos.coords.latitude,
-          pos.coords.longitude,
-        ];
-        setDriverPos(coords);
-        const b = bookingRef.current;
-        if (session?.user?.id && b?.user?._id) {
-          socket.emit("driver-location-update", {
-            bookingId:booking?._id,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            status:status,
-          });
-        }
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 },
-    );
-    return () => {
-      if (watchRef.current !== null)
-        navigator.geolocation.clearWatch(watchRef.current);
-    };
-  }, [booking?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+    const socket=getSocket()
+    socket.emit("join-ride",id)
+    socket.on("driver-location",({latitude,longitude})=>{
+      setDriverPos([latitude,longitude])
+    })
+    
+     return ()=>{
+      socket.off("driver-location")
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAction = async () => {
     if (!booking) return;
@@ -227,11 +206,9 @@ export default function ActiveRidePage() {
     booking.dropLocation.coordinates[0],
   ];
 
-
-
   if (actionLoading) {
     return (
-      <div className="h-screen w-full flex  items-center justify-center bg-zinc-100">
+      <div className="h-screen w-full flex items-center justify-center bg-zinc-100">
         <div className="flex flex-col items-center gap-4 ">
           <div
             className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white
@@ -275,28 +252,22 @@ export default function ActiveRidePage() {
   const cfg = STATUS_LABELS[booking.bookingStatus];
 
   return (
-  
     <div className=" h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-zinc-100"
-    style={{ marginTop: "-80px", paddingTop: "80px" }}>
+   >
       {/* Carte */}
-      <div className="relative flex-1 min-h-0 z-0">
+      <div className="relative flex-1 h-full z-0">
         <MapView
-          driverLocation={driverPos}
-          pickupLocation={pickupPos}
-          dropLocation={dropPos}
-          mapStatus={booking.bookingStatus}
-          onStats={({
-            distanceToPickup,
-            etaToPickup,
-            distanceToDrop,
-            etaToDrop,
-          }: { distanceToPickup: number; etaToPickup: number; distanceToDrop: number; etaToDrop: number }) => {
-            setDistanceToPickup(distanceToPickup);
-            setEtaToPickup(etaToPickup);
-            setDistanceToDrop(distanceToDrop);
-            setEtaToDrop(etaToDrop);
-          }}
-        />
+  driverPos={driverPos}        // ✅ au lieu de driverLocation
+  pickupPos={pickupPos}        // ✅ au lieu de pickupLocation
+  dropPos={dropPos}            // ✅ au lieu de dropLocation
+  mapStatus={booking.bookingStatus}
+  onStats={({ distanceToPickup, etaToPickup, distanceToDrop, etaToDrop }) => {
+    setDistanceToPickup(distanceToPickup);
+    setEtaToPickup(etaToPickup);
+    setDistanceToDrop(distanceToDrop);
+    setEtaToDrop(etaToDrop);
+  }}
+/>
 
         <motion.div
           initial={{ opacity: 0, y: -16 }}
@@ -321,7 +292,7 @@ export default function ActiveRidePage() {
       >
         <div className="bg-zinc-950 px-6 py-5 shrink-0">
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase font-semibold mb-1">
-            Panneau du Conducteur
+            Panneau du Client
           </p>
           <div className="flex items-center justify-between">
             <h1 className="text-white text-xl font-bold">Trajet Actif</h1>
@@ -400,7 +371,7 @@ export default function ActiveRidePage() {
         </motion.div>
       </div>
     </div>
-    
-  
+
+
   );
 }

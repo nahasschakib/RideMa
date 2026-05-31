@@ -17,7 +17,10 @@ export async function POST(request:NextRequest) {
         }
 
     }catch(error){
-        return NextResponse.json({message:`Error sending message ${error}`},{status:500})
+         console.log(error)
+        return NextResponse.json(
+            {message:`Error sending message ${error}`},
+            {status:500})
     }
 
 }

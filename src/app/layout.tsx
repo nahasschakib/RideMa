@@ -4,7 +4,7 @@ import "./globals.css";
 import Provider from "@/lib/Provider";
 import ReduxProvider from "@/redux/ReduxProvider";
 import InitUser from "@/InitUser";
-import Navbar from "./components/Navbar";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RideMa - Plateforme de gestion des reservations des vehicules",
+  title: "MaRide - Plateforme de gestion des reservations des vehicules",
   description:
-    "RideMa est une plateforme moderne de location de véhicules multi-vendeurs permettant aux utilisateurs de réserver facilement des voitures, des motos et des véhicules utilitaires. Grâce à une connexion sécurisée, des propriétaires vérifiés et une tarification transparente, RideMa simplifie et fiabilise la mobilité.",
+    "MaRide est une plateforme moderne de location de véhicules multi-vendeurs permettant aux utilisateurs de réserver facilement des voitures, des motos et des véhicules utilitaires. Grâce à une connexion sécurisée, des propriétaires vérifiés et une tarification transparente, MaRide simplifie et fiabilise la mobilité.",
 };
 
 export default function RootLayout({

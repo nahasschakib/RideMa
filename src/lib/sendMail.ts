@@ -10,7 +10,7 @@ export const sendMail = async (
 ) => {
   try {
     const data = await resend.emails.send({
-      from: "RideMA <chakib@vistalogisticsapp.com>", // temporaire
+      from: "MaRide <chakib@vistalogisticsapp.com>", // temporaire
       to,
       subject,
       html,

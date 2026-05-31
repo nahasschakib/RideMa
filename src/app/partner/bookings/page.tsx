@@ -95,7 +95,7 @@ const STATUS_LABELS: Record<string, string> = {
 function getVehicleIcon(vehicleType?: string) {
   switch (vehicleType?.toLowerCase()) {
     case "bike":
-    case "motorcycle":
+    case "motocycle":
     case "scooter":
       return <Bike className="w-4 h-4 text-gray-400" />;
     case "truck":

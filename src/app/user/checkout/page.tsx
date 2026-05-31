@@ -8,7 +8,7 @@ import { getSocket } from '@/lib/socket'
 
 const VEHICLE_META: Record<string, { label: string; Icon: LucideIcon }> = {
   car:        { label: "Voiture", Icon: Car   },
-  motorcycle: { label: "Moto",    Icon: Bike  },
+  motocycle: { label: "Moto",    Icon: Bike  },
   scooter:    { label: "Scooter", Icon: Bike  },
   vélo:       { label: "Vélo",    Icon: Bike  },
   truck:      { label: "Camion",  Icon: Truck },
@@ -625,7 +625,7 @@ function CheckoutContent() {
                       </motion.div>
                       <div>
                         <h3 className="text-xl font-black text-zinc-900 mb-1">Trajet terminé</h3>
-                        <p className="text-zinc-400 text-sm font-medium">Merci d&apos;avoir utilisé RideMa !</p>
+                        <p className="text-zinc-400 text-sm font-medium">Merci d&apos;avoir utilisé MaRide !</p>
                       </div>
                     </motion.div>
                   )}
