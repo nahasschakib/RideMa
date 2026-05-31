@@ -90,6 +90,9 @@ longitude,
 })
 })
 
+socket.on("chat-message",(data)=>{
+  io.to(`ride-${data.bookingId}`).emit("chat-message",data)
+})
 
 
 socket.on("disconnect", async () => {

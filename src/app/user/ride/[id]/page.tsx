@@ -258,15 +258,15 @@ export default function ActiveRidePage() {
       {/* Carte */}
       <div className="relative flex-1 h-full z-0">
         <MapView
-  driverPos={driverPos}        // ✅ au lieu de driverLocation
-  pickupPos={pickupPos}        // ✅ au lieu de pickupLocation
-  dropPos={dropPos}            // ✅ au lieu de dropLocation
-  mapStatus={booking.bookingStatus}
-  onStats={({ distanceToPickup, etaToPickup, distanceToDrop, etaToDrop }) => {
-    setDistanceToPickup(distanceToPickup);
-    setEtaToPickup(etaToPickup);
-    setDistanceToDrop(distanceToDrop);
-    setEtaToDrop(etaToDrop);
+                driverPos={driverPos}        // ✅ au lieu de driverLocation
+                pickupPos={pickupPos}        // ✅ au lieu de pickupLocation
+                dropPos={dropPos}            // ✅ au lieu de dropLocation
+                mapStatus={booking.bookingStatus}
+                onStats={({ distanceToPickup, etaToPickup, distanceToDrop, etaToDrop }) => {
+                  setDistanceToPickup(distanceToPickup);
+                  setEtaToPickup(etaToPickup);
+                  setDistanceToDrop(distanceToDrop);
+                  setEtaToDrop(etaToDrop);
   }}
 />
 

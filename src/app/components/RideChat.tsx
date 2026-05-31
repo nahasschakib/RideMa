@@ -1,10 +1,11 @@
 "use client";
 import axios from "axios";
 import { Send, Sparkles, X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {AnimatePresence, motion} from "motion/react"
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import { getSocket } from "@/lib/socket";
 
 interface RideChatProps {
   currentRole: "user" | "driver" | "admin";
@@ -35,17 +36,23 @@ function RideChat({
   const [suggestions,setSuggestions]=useState<string[]>([]);
   const [showAI,setShowAI]=useState(false)
   const [aiLoading,setAiLoading]=useState(false)
+  const messagesEndRef=useRef<HTMLDivElement>(null)
+
+  useEffect(()=>{
+    messagesEndRef.current?.scrollIntoView({behavior:"smooth"})
+  },[messages])
   
 
   const sendMsg= async ()=>{
     try {
+      const socket=getSocket()
       const {data}= await axios.post("/api/chat/send",{
         sender:currentRole,
         text,
         bookingId
       })
-      console.log(data)
-      setMessages([...messages,data])
+      socket.emit("chat-message", data.msg)
+      setText("")
      }catch (error) {
       console.log(error)
     }
@@ -55,7 +62,6 @@ function RideChat({
       const {data}= await axios.post("/api/chat/get-all",{
         bookingId
       })
-      console.log(data);
       const msgs: message[] = data.msgs ?? [];
       setMessages(msgs);
       if (msgs.length > 0) setLastMessage(msgs[msgs.length - 1].text);
@@ -79,6 +85,23 @@ function RideChat({
      };
   load();
 }, []);
+
+  useEffect(()=>{
+   const socket = getSocket()
+
+   const joinRoom = () => socket.emit("join-ride", bookingId)
+   joinRoom()
+   socket.on("connect", joinRoom)
+
+   socket.on("chat-message",(data)=>{
+    setMessages(prev=>[...prev,data])
+   })
+
+   return ()=>{
+    socket.off("connect", joinRoom)
+    socket.off("chat-message")
+   }
+  },[bookingId])
 
    const getAlSuggestions= async ()=>{
     setAiLoading(true)
@@ -151,7 +174,12 @@ function RideChat({
             )
           })
         )}
+         <div ref={messagesEndRef}/>
     </div>
+
+       
+
+
     <AnimatePresence>
         {showAI && (messages ?? []).length > 0 && (
           <motion.div

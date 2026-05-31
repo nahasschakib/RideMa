@@ -6,15 +6,15 @@ export async function POST(request:NextRequest) {
     try{
         await dbConnect()
         const {bookingId,text,sender} = await request.json()
+        if(!bookingId || !text || !sender || !["user","driver"].includes(sender)){
+            return new Response("Invalid request", { status: 400 })
+        }
         const msg = await ChatMessage.create({
             bookingId,
             text,
             sender
         })
         return NextResponse.json({message:"Message sent",msg},{status:200})
-        if(!bookingId || !text || !sender || !["user","driver"].includes(sender)){
-            return new Response("Invalid request", { status: 400 })
-        }
 
     }catch(error){
          console.log(error)
