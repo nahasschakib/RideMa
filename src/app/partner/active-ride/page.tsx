@@ -149,8 +149,15 @@ export default function ActiveRidePage() {
 
     useEffect(()=>{
     if(!booking?._id) return;
-    const socket = getSocket()
+   const socket = getSocket()
     socket.emit("join-ride",booking?._id)
+    socket.on("driver-location",({latitude,longitude})=>{
+      setDriverPos([latitude,longitude])
+    })
+     return ()=>{
+      socket.off("join-ride")
+      socket.off("driver-location")
+    }
   },[booking?._id])
 
   const onChatToggle = () => {

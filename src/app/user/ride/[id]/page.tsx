@@ -160,6 +160,7 @@ export default function ActiveRidePage() {
     })
     
      return ()=>{
+      socket.off("join-ride")
       socket.off("driver-location")
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
