@@ -4,10 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios, { AxiosError } from "axios";
-import { Car, ChevronUp, Loader2, MapPin, Phone, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Car,
+  ChevronUp,
+  KeyRound,
+  Loader2,
+  MapPin,
+  Phone,
+  Zap,
+} from "lucide-react";
 import { BookingStatus, PaymentStatus } from "@/models/booking.model";
 import { getSocket } from "@/lib/socket";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import PanelContent from "@/app/components/PanelContent";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
@@ -19,6 +28,7 @@ interface IActiveBooking {
   fare: number;
   pickUpAddress: string;
   dropAddress: string;
+  pickUpOtp: string;
   pickUpLocation: { type: "Point"; coordinates: [number, number] };
   dropLocation: { type: "Point"; coordinates: [number, number] };
   user: { _id: string; name: string; email: string };
@@ -110,8 +120,65 @@ export default function ActiveRidePage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
+  const [otpMode, setOtpMode] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpError, setOtpError] = useState("");
+
+  const [dropoOpMode, setDropOtpMode] = useState(false);
+  const [dropOtp, setDropOtp] = useState("");
+  const [loadingDrpOtp, setLoadingDropOtp] = useState(false);
+  const [dropOtpVerified, setDropOtpVerified] = useState(false);
+  const [dropOtpError, setDropOtpError] = useState("");
+
   const [isDesktop, setIsDesktop] = useState(false);
 
+  const handleSendPickUpOtp = async () => {
+    try {
+      const { data } = await axios.post(
+        "/api/partner/bookings/otp/pickup/send",
+        { bookingId: booking?._id },
+      );
+      console.log(data);
+      setOtpMode(true);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleSendDropOtp = async () => {
+    try {
+      const { data } = await axios.post("/api/partner/bookings/otp/drop/send", {
+        bookingId: booking?._id,
+      });
+      console.log(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleVerifyPickUpOtp = async () => {
+    try {
+      const { data } = await axios.post(
+        "/api/partner/bookings/otp/pickup/verify",
+        { bookingId: booking?._id, otp },
+      );
+      console.log(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleVerifyDropOtp = async () => {
+    try {
+      const { data } = await axios.post(
+        "/api/partner/bookings/otp/drop/verify",
+        { bookingId: booking?._id, dropOtp },
+      );
+      console.log(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024);
     check();
@@ -147,18 +214,18 @@ export default function ActiveRidePage() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(()=>{
-    if(!booking?._id) return;
-   const socket = getSocket()
-    socket.emit("join-ride",booking?._id)
-    socket.on("driver-location",({latitude,longitude})=>{
-      setDriverPos([latitude,longitude])
-    })
-     return ()=>{
-      socket.off("join-ride")
-      socket.off("driver-location")
-    }
-  },[booking?._id])
+  useEffect(() => {
+    if (!booking?._id) return;
+    const socket = getSocket();
+    socket.emit("join-ride", booking?._id);
+    socket.on("driver-location", ({ latitude, longitude }) => {
+      setDriverPos([latitude, longitude]);
+    });
+    return () => {
+      socket.off("join-ride");
+      socket.off("driver-location");
+    };
+  }, [booking?._id]);
 
   const onChatToggle = () => {
     setChatOpen((prev) => !prev);
@@ -176,10 +243,10 @@ export default function ActiveRidePage() {
         const b = bookingRef.current;
         if (session?.user?.id && b?.user?._id) {
           socket.emit("driver-location-update", {
-            bookingId:booking?._id,
+            bookingId: booking?._id,
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
-            status:status,
+            status: status,
           });
         }
       },
@@ -234,8 +301,6 @@ export default function ActiveRidePage() {
     booking.dropLocation.coordinates[0],
   ];
 
-
-
   if (actionLoading) {
     return (
       <div className="h-screen w-full flex  items-center justify-center bg-zinc-100">
@@ -282,9 +347,10 @@ export default function ActiveRidePage() {
   const cfg = STATUS_LABELS[booking.bookingStatus];
 
   return (
-  
-    <div className=" h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-zinc-100"
-    style={{ marginTop: "-80px", paddingTop: "80px" }}>
+    <div
+      className=" h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-zinc-100"
+      style={{ marginTop: "-80px", paddingTop: "80px" }}
+    >
       {/* Carte */}
       <div className="relative flex-1 min-h-0 z-0">
         <MapView
@@ -297,7 +363,12 @@ export default function ActiveRidePage() {
             etaToPickup,
             distanceToDrop,
             etaToDrop,
-          }: { distanceToPickup: number; etaToPickup: number; distanceToDrop: number; etaToDrop: number }) => {
+          }: {
+            distanceToPickup: number;
+            etaToPickup: number;
+            distanceToDrop: number;
+            etaToDrop: number;
+          }) => {
             setDistanceToPickup(distanceToPickup);
             setEtaToPickup(etaToPickup);
             setDistanceToDrop(distanceToDrop);
@@ -319,6 +390,8 @@ export default function ActiveRidePage() {
           </div>
         </motion.div>
       </div>
+
+      {/*desktop */}
 
       <motion.div
         initial={{ opacity: 0, x: 60 }}
@@ -349,6 +422,7 @@ export default function ActiveRidePage() {
         </div>
       </motion.div>
 
+      {/* mobile view */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 pointer-events-none">
         <motion.div
           className="bg-white rounded-t-3xl shadow-2xl pointer-events-auto
@@ -399,15 +473,105 @@ export default function ActiveRidePage() {
               </div>
             </div>
 
-            <div className="h-px bg-zinc-100 mx-5"/>
+            <div className="h-px bg-zinc-100 mx-5" />
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
-            <PanelContent {...panelProps}/>
+            <PanelContent {...panelProps} />
+          </div>
+
+          <div className="shrink-0 border-t border-zinc-100 bg-white px-5 py-4">
+            <AnimatePresence mode="wait">
+              {status === "confirmed" &&
+                !otpMode &&
+                !otpVerified && (
+                  <motion.button
+                    key="arrived"
+                    onClick={() => handleSendPickUpOtp()}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97]
+  text-white py-4 rounded-2xl font-bold text-sm tracking-wide
+  transition-all flex items-center justify-center gap-2"
+                  >
+                    <MapPin size={15} /> Je suis arrivé au point de prise en
+                    charge <ArrowRight size={15} className="ml-1" />
+                  </motion.button>
+                )}
+
+              {status === "confirmed" && otpMode && !otpVerified && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden"
+                >
+                  <div className="px-4 py-3 flex items-center gap-2 bg-zinc-950">
+                    <KeyRound size={14} className="text-amber-400" />
+                    <p className="text-white text-xs font-bold tracking-wide uppercase">
+                      Saisissez le code OTP du client
+                    </p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <p className="text-zinc-500 text-xs text-center">
+                      Demandez au client son code OTP à 4 chiffres pour démarrer
+                      le trajet.
+                    </p>
+                    <div className="flex justify-center">
+                      <input
+                        type="text"
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, ""));
+                          setOtpError("");
+                        }}
+                        placeholder=". . . ."
+                        className="w-48 border-2 border-zinc-200 focus:border-zinc-900 rounded-xl
+                      px-4 py-3 text-center text-2xl tracking-[0.5em] font-black outline-none transition-colors"
+                      />
+                    </div>
+                    {otpError && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-red-500 text-xs text-center font-medium"
+                      >
+                        {otpError}
+                      </motion.p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setOtpMode(false);
+                          setOtp("");
+                          setOtpError("");
+                        }}
+                        className="flex-1 border border-zinc-200  bg-white text-zinc-700 py-2.5 rounded-xl text-sm font-semi-bold  active:scale-[0.97]  transition-all"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={handleVerifyPickUpOtp}
+                        disabled={loadingOtp || otp.length < 4}
+                        className="flex-1 bg-zinc-900 hover:bg-zinc-800
+                      disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-bold active:scale-[0.97]
+                      transition-all"
+                      >
+                        {loadingOtp ? (
+                          <span className="flex items-center justify-center gap-2">Vérification...</span>
+                        ) : (
+                          <span>Verifier OTP</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>
     </div>
-    
-  
   );
 }

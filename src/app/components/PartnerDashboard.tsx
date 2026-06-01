@@ -236,13 +236,13 @@ function PartnerDashboard() {
           className="bg-black text-white rounded-3xl p-10 shadow-2xl"
           >
             <h2 className="tex-2xl font-bold">
-              🚀  You&apos;re Live
+              🚀   Vous etes en ligne
             </h2>
             <button
             onClick={() => router.push("/partner/pending-requests")}
             className="mt-6 bg-white text-black px-6 py-3 rounded-xl font-semibold flex
             items-center justify-center gap-2">
-              Go to Bookings <ArrowRight size={16}/>
+              Aller aux réservations <ArrowRight size={16}/>
             </button>
           </motion.div>
         )}

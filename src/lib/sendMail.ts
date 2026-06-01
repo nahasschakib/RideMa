@@ -1,7 +1,12 @@
-// src/lib/mail.ts
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 export const sendMail = async (
   to: string,
@@ -9,8 +14,8 @@ export const sendMail = async (
   html: string
 ) => {
   try {
-    const data = await resend.emails.send({
-      from: "MaRide <chakib@vistalogisticsapp.com>", // temporaire
+    const data = await transporter.sendMail({
+      from: `MaRide <${process.env.GMAIL_USER}>`,
       to,
       subject,
       html,
@@ -22,4 +27,3 @@ export const sendMail = async (
     throw error;
   }
 };
-
