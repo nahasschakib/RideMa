@@ -44,7 +44,7 @@ function getDistance(a: LatLng, b: LatLng): number {
 }
 
 // FIX 1: fitBounds uniquement au montage + changement de statut, pas à chaque position GPS
-// FIX 2: La ligne pointillée est mise à jour seulement si le driver bouge de > 30m
+// FIX 2: La ligne pointillée est mise à jour seulement si le driver bouge de > 10m
 // FIX 3: mapStatus pris en compte pour afficher pickup→drop ou driver→pickup
 
 function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, mapStatus }: MapViewProps) {
@@ -63,6 +63,8 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
 
   const pickup: LatLng = { lat: pickupLocation[0], lng: pickupLocation[1] }
   const drop: LatLng = { lat: dropLocation[0], lng: dropLocation[1] }
+  const driverLat = driverLocation ? driverLocation[0] : null
+  const driverLng = driverLocation ? driverLocation[1] : null
   const driver: LatLng | null = driverLocation
     ? { lat: driverLocation[0], lng: driverLocation[1] }
     : null
@@ -75,7 +77,7 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       if (dist > 0.005) setHeading(getBearing(prevDriverRef.current, driver))
     }
     prevDriverRef.current = { ...driver }
-  }, [driverLocation?.[0], driverLocation?.[1]]) // eslint-disable-line
+  }, [driverLat, driverLng]) // eslint-disable-line
 
   // ─── Route principale pickup → drop ───────────────────────────────────────
   useEffect(() => {
@@ -115,7 +117,7 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
   // ─── Ligne pointillée driver → pickup ─────────────────────────────────────
   // FIX: throttle — ne refait la route que si le driver a bougé de > 30m
   useEffect(() => {
-    if (!map || !routesLib || !driver || mapStatus !== "confirmed") {
+    if (!map || !routesLib || !driver) {
       driverRouteRendererRef.current?.setMap(null)
       driverRouteRendererRef.current = null
       return
@@ -169,22 +171,64 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       driverRouteRendererRef.current?.setMap(null)
       driverRouteRendererRef.current = null
     }
-  }, [map, routesLib, driverLocation?.[0], driverLocation?.[1], pickupLocation[0], pickupLocation[1], mapStatus]) // eslint-disable-line
+  }, [map, routesLib, driverLat, driverLng, pickupLocation[0], pickupLocation[1]]) // eslint-disable-line
 
   // ─── FitBounds : une seule fois au montage ou si le statut change ──────────
-  // FIX: on ne re-fit plus à chaque mouvement GPS → plus de "sauts" de caméra
+  // FIX desktop : on attend que le layout (panneau latéral) soit rendu via ResizeObserver
+  // avant de faire fitBounds, sinon la carte calcule sur une largeur incorrecte → zoom max
   useEffect(() => {
     if (!map) return
 
     const statusChanged = prevStatusRef.current !== mapStatus
     if (!initialFitDoneRef.current || statusChanged) {
-      const bounds = new google.maps.LatLngBounds()
-      bounds.extend(pickup)
-      bounds.extend(drop)
-      if (driver) bounds.extend(driver)
-      map.fitBounds(bounds, { top: 100, bottom: 100, left: 80, right: 80 })
-      initialFitDoneRef.current = true
-      prevStatusRef.current = mapStatus
+
+      const doFit = () => {
+        const bounds = new google.maps.LatLngBounds()
+        bounds.extend(pickup)
+        bounds.extend(drop)
+        if (driver) bounds.extend(driver)
+
+        const isDesktop = window.innerWidth >= 1024
+        const mapDiv = map.getDiv()
+        // Largeur réelle du panneau = viewport - largeur actuelle de la carte
+        const rightPad = isDesktop && mapDiv
+          ? Math.max(window.innerWidth - mapDiv.offsetWidth, 0)
+          : isDesktop ? 420 : 60
+
+        map.fitBounds(bounds, {
+          top: 80,
+          bottom: isDesktop ? 80 : 160,
+          left: 60,
+          right: rightPad,
+        })
+
+        // Cap zoom à 16 pour éviter un zoom trop serré quand les points sont proches
+        const listener = map.addListener("idle", () => {
+          google.maps.event.removeListener(listener)
+          if ((map.getZoom() ?? 0) > 16) map.setZoom(16)
+        })
+
+        initialFitDoneRef.current = true
+        prevStatusRef.current = mapStatus
+      }
+
+      // Attend que le conteneur ait sa taille définitive (layout stable)
+      const container = map.getDiv()
+      if (!container) { doFit(); return }
+
+      const ro = new ResizeObserver((_, obs) => {
+        if (container.offsetWidth > 0) {
+          obs.disconnect()
+          // Petit délai supplémentaire pour laisser le panneau finir son animation
+          setTimeout(doFit, 150)
+        }
+      })
+      ro.observe(container)
+
+      // Fallback si ResizeObserver ne se déclenche pas (conteneur déjà stable)
+      const fallback = setTimeout(() => { ro.disconnect(); doFit() }, 600)
+
+      return () => { ro.disconnect(); clearTimeout(fallback) }
     }
   }, [map, mapStatus]) // eslint-disable-line
 
@@ -196,7 +240,7 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       distanceToDrop: driver ? getDistance(driver, drop) : 0,
       etaToDrop: driver ? (getDistance(driver, drop) / 40) * 60 : 0,
     })
-  }, [driverLocation?.[0], driverLocation?.[1], pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1]]) // eslint-disable-line
+  }, [driverLat, driverLng, pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1]]) // eslint-disable-line
 
   return (
     <>
