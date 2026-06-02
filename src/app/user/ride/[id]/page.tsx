@@ -9,6 +9,7 @@ import { BookingStatus, PaymentStatus } from "@/models/booking.model";
 import { getSocket } from "@/lib/socket";
 import { motion } from "motion/react";
 import PanelContent from "@/app/components/PanelContent";
+import CompletedScreen from "@/app/components/CompletedScreen";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
@@ -222,6 +223,12 @@ export default function ActiveRidePage() {
       </div>
     );
   }
+
+   if(status === "completed" && booking) {
+      return (
+        <CompletedScreen booking={booking} role={"user"} />
+      )
+    }
   const isActive = ["confirmed", "started"].includes(status);
   const canChat = booking.bookingStatus === "confirmed";
   const etaValue = isActive

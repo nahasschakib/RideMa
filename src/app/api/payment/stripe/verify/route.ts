@@ -51,8 +51,13 @@ export async function GET(req: NextRequest) {
     const partnerAmount = Math.round(fare_lookup.fare * 0.9 * 100) / 100;
 
     const updated = await Booking.findOneAndUpdate(
-      { _id: bookingId, user: session.user.id, bookingStatus: "awaiting_payment" },
-      { bookingStatus: "confirmed", paymentStatus: "paid", adminCommission, partnerAmount },
+      { _id: bookingId, 
+        user: session.user.id, 
+        bookingStatus: "awaiting_payment" },
+      { bookingStatus: "confirmed", 
+        paymentStatus: "paid", 
+        adminCommission, 
+        partnerAmount },
       { new: true }
     );
 

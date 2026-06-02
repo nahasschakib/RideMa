@@ -8,6 +8,7 @@ import TabButton from "./TabButton";
 import { DashboardApiResponse,DashboardStats,PartnerReview,PendingKycItem,VehicleReview } from "@/../types/admin";
 import {AnimatePresence, motion} from "motion/react"
 import ContentList from "./ContentList";
+import AdminEaring from "./AdminEaring";
 
 
 type Tab = "partner"|"kyc"|"vehicle"
@@ -115,6 +116,7 @@ function AdminDashboard() {
    </AnimatePresence>
 
 </main>
+<AdminEaring/>
 
     </div>
   );

@@ -335,7 +335,7 @@ export default function Page() {
                       {( b.bookingStatus === "completed" || b.bookingStatus === "confirmed" || b.bookingStatus === "started") && (
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => router.push("/partner/active-ride")}
+                            onClick={() => router.push(`/partner/active-ride?bookingId=${b._id}`)}
                             className="flex items-center gap-1 text-sm font-medium
                              text-blue-700 hover:text-blue-70 bg-blue-100 hover:bg-blue-100 transition-colors px-4 py-1.5 rounded-lg"
                           >

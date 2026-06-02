@@ -12,11 +12,15 @@ export async function GET(req: NextRequest){
             return NextResponse.json({message:"Unauthorized"},{status:401})
         }
         const user = await User.findOne({email:session.user.email})
-        const booking = await Booking.findOne({
-            driver: user._id,
-            bookingStatus: { $in: ["confirmed", "started", "completed"] }
-        })
-        .sort({ updatedAt: -1 })
+        const { searchParams } = new URL(req.url)
+        const bookingId = searchParams.get("bookingId")
+
+        const query = bookingId
+            ? { _id: bookingId, driver: user._id }
+            : { driver: user._id, bookingStatus: { $in: ["confirmed", "started"] } }
+
+        const booking = await Booking.findOne(query)
+        .sort({ createdAt: -1 })
         .populate("user", "name email")
         .populate("driver", "name")
         .populate("vehicle", "type model number")

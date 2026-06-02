@@ -33,7 +33,7 @@ export async function POST(req:NextRequest){
         }
 
          
-         booking.BookingStatus="started"
+         booking.bookingStatus="started"
          booking.pickUpOtp=""
          booking.pickUpOtpExpires=undefined
          await booking.save()

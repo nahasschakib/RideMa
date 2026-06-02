@@ -128,13 +128,28 @@ function Navbar() {
                 >
                   Réservations
                 </Link>
-                <Link
-                  className="relative text-sm font-medium text-gray-300
-               hover:text-white transition"
-                  href={"/partner/active-ride"}
+
+                <button
+                  className="relative text-sm font-medium text-gray-300 hover:text-white transition"
+                  onClick={async () => {
+                    try {
+                      const { data } = await axios.get(
+                        "/api/partner/my-active",
+                      );
+                      if (data?._id) {
+                        router.push(
+                          `/partner/active-ride?bookingId=${data._id}`,
+                        );
+                      } else {
+                        router.push("/partner/active-ride");
+                      }
+                    } catch {
+                      router.push("/partner/active-ride");
+                    }
+                  }}
                 >
                   Trajet Actif
-                </Link>
+                </button>
               </>
             ) : (
               <>

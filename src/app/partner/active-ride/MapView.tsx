@@ -43,31 +43,41 @@ function getDistance(a: LatLng, b: LatLng): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
 }
 
-// FIX 1: fitBounds uniquement au montage + changement de statut, pas à chaque position GPS
-// FIX 2: La ligne pointillée est mise à jour seulement si le driver bouge de > 10m
-// FIX 3: mapStatus pris en compte pour afficher pickup→drop ou driver→pickup
-
 function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, mapStatus }: MapViewProps) {
   const map = useMap()
   const routesLib = useMapsLibrary("routes")
 
-  // Refs pour les renderers (évite de recréer à chaque render)
   const mainRouteRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
   const driverRouteRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
 
   const [heading, setHeading] = useState(0)
   const prevDriverRef = useRef<LatLng | null>(null)
-  const prevDriverRouteRef = useRef<LatLng | null>(null) // Pour throttle la ligne pointillée
-  const initialFitDoneRef = useRef(false) // FIX: fitBounds fait une seule fois au départ
+  const prevDriverRouteRef = useRef<LatLng | null>(null)
   const prevStatusRef = useRef<string>("")
 
-  const pickup: LatLng = { lat: pickupLocation[0], lng: pickupLocation[1] }
-  const drop: LatLng = { lat: dropLocation[0], lng: dropLocation[1] }
+  // Valeurs stables pour les deps arrays (taille constante)
+  const pickupLat = pickupLocation[0]
+  const pickupLng = pickupLocation[1]
+  const dropLat = dropLocation[0]
+  const dropLng = dropLocation[1]
   const driverLat = driverLocation ? driverLocation[0] : null
   const driverLng = driverLocation ? driverLocation[1] : null
-  const driver: LatLng | null = driverLocation
-    ? { lat: driverLocation[0], lng: driverLocation[1] }
+
+  const pickup: LatLng = { lat: pickupLat, lng: pickupLng }
+  const drop: LatLng = { lat: dropLat, lng: dropLng }
+  const driver: LatLng | null = driverLat !== null && driverLng !== null
+    ? { lat: driverLat, lng: driverLng }
     : null
+
+  // ─── Ref toujours à jour pour éviter les closures stale ───────────────────
+  // Ces refs permettent au fitBounds de toujours lire les dernières coordonnées
+  const pickupRef = useRef<LatLng>(pickup)
+  const dropRef = useRef<LatLng>(drop)
+  const driverRef = useRef<LatLng | null>(driver)
+
+  useEffect(() => { pickupRef.current = pickup }, [pickupLat, pickupLng]) // eslint-disable-line
+  useEffect(() => { dropRef.current = drop }, [dropLat, dropLng]) // eslint-disable-line
+  useEffect(() => { driverRef.current = driver }, [driverLat, driverLng]) // eslint-disable-line
 
   // ─── Cap de déplacement (seuil 5m) ────────────────────────────────────────
   useEffect(() => {
@@ -87,6 +97,7 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
 
     const renderer = new routesLib.DirectionsRenderer({
       suppressMarkers: true,
+      preserveViewport: true,
       polylineOptions: {
         strokeColor: "#6366f1",
         strokeWeight: 5,
@@ -99,8 +110,8 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
     const service = new routesLib.DirectionsService()
     service.route(
       {
-        origin: pickup,
-        destination: drop,
+        origin: pickupRef.current,
+        destination: dropRef.current,
         travelMode: routesLib.TravelMode.DRIVING,
       },
       (result, status) => {
@@ -112,10 +123,9 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       renderer.setMap(null)
       mainRouteRendererRef.current = null
     }
-  }, [map, routesLib, pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1]]) // eslint-disable-line
+  }, [map, routesLib, pickupLat, pickupLng, dropLat, dropLng]) // eslint-disable-line
 
-  // ─── Ligne pointillée driver → pickup ─────────────────────────────────────
-  // FIX: throttle — ne refait la route que si le driver a bougé de > 30m
+  // ─── Ligne pointillée driver → pickup (throttle 30m) ──────────────────────
   useEffect(() => {
     if (!map || !routesLib || !driver) {
       driverRouteRendererRef.current?.setMap(null)
@@ -123,10 +133,9 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       return
     }
 
-    // Throttle: ignore si le conducteur n'a pas assez bougé
     if (prevDriverRouteRef.current) {
       const dist = getDistance(prevDriverRouteRef.current, driver)
-      if (dist < 0.03) return // < 30m → on ne refait pas la requête
+      if (dist < 0.03) return
     }
     prevDriverRouteRef.current = { ...driver }
 
@@ -137,13 +146,14 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
     service.route(
       {
         origin: driver,
-        destination: pickup,
+        destination: pickupRef.current,
         travelMode: routesLib.TravelMode.DRIVING,
       },
       (result, status) => {
         if (status === "OK" && result) {
           const renderer = new routesLib.DirectionsRenderer({
             suppressMarkers: true,
+            preserveViewport: true,
             directions: result,
             polylineOptions: {
               strokeColor: "#6366f1",
@@ -171,66 +181,52 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       driverRouteRendererRef.current?.setMap(null)
       driverRouteRendererRef.current = null
     }
-  }, [map, routesLib, driverLat, driverLng, pickupLocation[0], pickupLocation[1]]) // eslint-disable-line
+  }, [map, routesLib, driverLat, driverLng, pickupLat, pickupLng]) // eslint-disable-line
 
-  // ─── FitBounds : une seule fois au montage ou si le statut change ──────────
-  // FIX desktop : on attend que le layout (panneau latéral) soit rendu via ResizeObserver
-  // avant de faire fitBounds, sinon la carte calcule sur une largeur incorrecte → zoom max
+  // ─── FitBounds ────────────────────────────────────────────────────────────
+  // CORRECTION PRINCIPALE :
+  // - Dépend des coordonnées réelles (pas seulement mapStatus)
+  // - Utilise les refs pour lire les valeurs fraîches dans le setTimeout
+  // - Re-fit si pickup/drop changent (nouvelle réservation)
+  // - Cap zoom à 15 max après fitBounds
   useEffect(() => {
     if (!map) return
 
     const statusChanged = prevStatusRef.current !== mapStatus
-    if (!initialFitDoneRef.current || statusChanged) {
+    prevStatusRef.current = mapStatus
 
-      const doFit = () => {
-        const bounds = new google.maps.LatLngBounds()
-        bounds.extend(pickup)
-        bounds.extend(drop)
-        if (driver) bounds.extend(driver)
+    const timer = setTimeout(() => {
+      const p = pickupRef.current
+      const d = dropRef.current
+      const drv = driverRef.current
 
-        const isDesktop = window.innerWidth >= 1024
-        const mapDiv = map.getDiv()
-        // Largeur réelle du panneau = viewport - largeur actuelle de la carte
-        const rightPad = isDesktop && mapDiv
-          ? Math.max(window.innerWidth - mapDiv.offsetWidth, 0)
-          : isDesktop ? 420 : 60
+      const bounds = new google.maps.LatLngBounds()
+      bounds.extend(p)
+      bounds.extend(d)
+      if (drv) bounds.extend(drv)
 
-        map.fitBounds(bounds, {
-          top: 80,
-          bottom: isDesktop ? 80 : 160,
-          left: 60,
-          right: rightPad,
-        })
+      const isDesktop = window.innerWidth >= 1024
+      const mapDiv = map.getDiv()
+      const panelWidth = isDesktop ? (window.innerWidth - (mapDiv?.offsetWidth ?? 0)) : 0
 
-        // Cap zoom à 16 pour éviter un zoom trop serré quand les points sont proches
-        const listener = map.addListener("idle", () => {
-          google.maps.event.removeListener(listener)
-          if ((map.getZoom() ?? 0) > 16) map.setZoom(16)
-        })
-
-        initialFitDoneRef.current = true
-        prevStatusRef.current = mapStatus
-      }
-
-      // Attend que le conteneur ait sa taille définitive (layout stable)
-      const container = map.getDiv()
-      if (!container) { doFit(); return }
-
-      const ro = new ResizeObserver((_, obs) => {
-        if (container.offsetWidth > 0) {
-          obs.disconnect()
-          // Petit délai supplémentaire pour laisser le panneau finir son animation
-          setTimeout(doFit, 150)
-        }
+      map.fitBounds(bounds, {
+        top: 80,
+        bottom: isDesktop ? 80 : 220,
+        left: 60,
+        right: isDesktop ? Math.max(panelWidth + 40, 60) : 60,
       })
-      ro.observe(container)
 
-      // Fallback si ResizeObserver ne se déclenche pas (conteneur déjà stable)
-      const fallback = setTimeout(() => { ro.disconnect(); doFit() }, 600)
+      // Cap zoom après que Google Maps ait fini son animation
+      const listener = map.addListener("idle", () => {
+        google.maps.event.removeListener(listener)
+        const z = map.getZoom() ?? 0
+        if (z > 15) map.setZoom(15)
+        if (z < 10) map.setZoom(10)
+      })
+    }, 300)
 
-      return () => { ro.disconnect(); clearTimeout(fallback) }
-    }
-  }, [map, mapStatus]) // eslint-disable-line
+    return () => clearTimeout(timer)
+  }, [map, mapStatus, pickupLat, pickupLng, dropLat, dropLng]) // eslint-disable-line
 
   // ─── Statistiques ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -240,11 +236,10 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
       distanceToDrop: driver ? getDistance(driver, drop) : 0,
       etaToDrop: driver ? (getDistance(driver, drop) / 40) * 60 : 0,
     })
-  }, [driverLat, driverLng, pickupLocation[0], pickupLocation[1], dropLocation[0], dropLocation[1]]) // eslint-disable-line
+  }, [driverLat, driverLng, pickupLat, pickupLng, dropLat, dropLng]) // eslint-disable-line
 
   return (
     <>
-      {/* Marker pickup (vert) */}
       <AdvancedMarker position={pickup} title="Départ" zIndex={10}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 4px 12px rgba(0,0,0,.3))" }}>
           <div style={{ background: "#16a34a", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "20px", whiteSpace: "nowrap" }}>
@@ -254,7 +249,6 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
         </div>
       </AdvancedMarker>
 
-      {/* Marker dropoff (rouge) */}
       <AdvancedMarker position={drop} title="Arrivée" zIndex={10}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 4px 12px rgba(0,0,0,.3))" }}>
           <div style={{ background: "#dc2626", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "20px", whiteSpace: "nowrap" }}>
@@ -264,7 +258,6 @@ function MapContent({ driverLocation, pickupLocation, dropLocation, onStats, map
         </div>
       </AdvancedMarker>
 
-      {/* Marker conducteur */}
       {driver && (
         <AdvancedMarker position={driver} title="Conducteur" zIndex={20}>
           <div style={{
