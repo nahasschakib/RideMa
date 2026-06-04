@@ -126,6 +126,12 @@ function CheckoutContent() {
     return()=>{clearTimeout(t)}
   },[status])
 
+  useEffect(() => {
+    if ((status === "confirmed" || status === "started") && bookingId) {
+      router.replace(`/user/ride/${bookingId}`)
+    }
+  }, [status, bookingId]) // eslint-disable-line
+
     useEffect(()=>{
       const socket =getSocket()
       socket.on("accept_booking",(data)=>{
@@ -570,7 +576,7 @@ function CheckoutContent() {
                        transition={{delay:0.5}}
                         whileTap={{ scale: 0.97 }}
                         whileHover={{scale:1.03}}
-                       onClick={() => router.push(`/partner/bookings?bookingId=${bookingId}`)}
+                       onClick={() => router.replace(`/user/ride/${bookingId}`)}
                         className="flex items-center gap-2 text-xs font-bold text-zinc-400
                         hover:text-zinc-900 transition-colors border border-zinc-200
                         hover:border-zinc-400 px-4 py-2.5 rounded-xl"

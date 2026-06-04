@@ -15,11 +15,8 @@ import axios from "axios";
 import { getSocket } from "@/lib/socket";
 
 const Navbar_Items = [
-  { label: "Acceuil", href: "/" },
-  { label: "Réservations", href: "/user/bookings" },
-  { label: "À propos de nous", href: "/a-propos" },
-  { label: "Contacts", href: "/contacts" },
-];
+   { label: "Réservations", href: "/user/bookings" },
+  ];
 
 function Navbar() {
   const pathName = usePathname();
@@ -82,10 +79,10 @@ function Navbar() {
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className={`fixed top-3 left-1/2 -translate-x-1/2
-          w-[94%] md:w-[86%] z-50 rounded-full bg-[#0B0B0B] 
+          w-[calc(100%-20px)] md:w-[86%] z-50 rounded-full bg-[#0B0B0B]
           text-white shadow-[0_15px_50px_rgba(0,0,0,0.7)] py-3`}
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Image
               src={"/logo1.png"}
@@ -151,25 +148,11 @@ function Navbar() {
                   Trajet Actif
                 </button>
               </>
-            ) : (
-              <>
-                {Navbar_Items.map((i, index) => {
-                  const active = i.href == pathName;
-                  return (
-                    <Link
-                      href={i.href}
-                      key={index}
-                      className={`text-sm font-medium transition ${
-                        active ? "text-white" : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      {i.label}
-                    </Link>
-                  );
-                })}
-              </>
-            )}
+            ) : 
+             null
+          }
           </div>
+           
           <div className="flex items-center gap-3 relative">
             <div className="hidden md:block relative">
               {!userData ? (
@@ -193,7 +176,7 @@ function Navbar() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-14 right-0 w-[300px] bg-white text-black rounded-2xl shadow-xl border"
+                        className="absolute top-14 right-0 w-[300px] bg-white text-black rounded-2xl shadow-xl border z-[100]"
                       >
                         <div className="p-5">
                           <p className="font-semibold text-lg">
@@ -206,6 +189,20 @@ function Navbar() {
                                 ? "Partenaire"
                                 : "Utilisateur"}
                           </p>
+                          {userData.role !== "partner" &&
+                            userData.role !== "admin" && (
+                              <div
+                                className="w-full flex items-center gap-3 pl-3 py-3 pt-3
+                            hover:bg-gray-100 rounded-xl"
+                                onClick={() =>
+                                  router.push("/user/bookings")
+                                }
+                              >
+                                  Réservations
+                                  <ChevronRight size={16} className="ml-auto" />
+                                 
+                                </div>
+                            )}
                           {userData.role === "admin" && (
                             <div
                               className="w-full flex items-center gap-3 py-3
@@ -245,7 +242,7 @@ function Navbar() {
                                     <Truck size={14} />
                                   </div>
                                 </div>
-                                Devenir Partnaire
+                                Devenir Partenaire
                                 <ChevronRight size={16} className="ml-auto" />
                               </div>
                             )}
@@ -285,12 +282,14 @@ function Navbar() {
               )}
             </div>
 
-            <button
-              className="md:hidden text-white"
-              onClick={() => setMenuOpen((p) => !p)}
-            >
-              {menuOpen ? <X size={26} /> : <Menu size={26} />}
-            </button>
+            {userData?.role === "partner" && (
+              <button
+                className="md:hidden text-white"
+                onClick={() => setMenuOpen((p) => !p)}
+              >
+                {menuOpen ? <X size={26} /> : <Menu size={26} />}
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -328,6 +327,7 @@ function Navbar() {
           </>
         )}
       </AnimatePresence>
+      <AnimatePresence>
       {profileOpen && userData && (
         <>
           <motion.div
@@ -342,7 +342,7 @@ function Navbar() {
             animate={{ y: 0 }}
             exit={{ y: 400 }}
             transition={{ type: "spring", damping: 25 }}
-            className="fixed inset-x-0 bottom-0 bg-white/80 rounded-t-3xl shadow-2xl z-50 md:hidden"
+            className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-[60] max-h-[80vh] overflow-y-auto md:hidden min-h-fit pb-8"
           >
             <div className="p-5">
               <p className="font-semibold text-lg">{userData.name}</p>
@@ -360,6 +360,19 @@ function Navbar() {
                   onClick={() => router.push("/admin/dashboard")}
                 >
                   Dashboard Admin
+                  <ChevronRight size={16} className="ml-auto" />
+                </div>
+              )}
+              {userData.role !== "partner" && userData.role !== "admin" && (
+                <div
+                  className="w-full flex items-center gap-3 pl-3 pt-3 pb-3
+                  hover:bg-gray-100 rounded-xl cursor-pointer"
+                  onClick={() => {
+                    router.push("/user/bookings");
+                    setProfileOpen(false);
+                  }}
+                >
+                  Réservations
                   <ChevronRight size={16} className="ml-auto" />
                 </div>
               )}
@@ -393,6 +406,47 @@ function Navbar() {
                   <ChevronRight size={16} className="ml-auto" />
                 </div>
               )}
+              {userData.role === "partner" && (
+                <>
+                  <div
+                    className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={() => { router.push("/partner/pending-requests"); setProfileOpen(false); }}
+                  >
+                    Demandes en attente
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                  <div
+                    className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={() => { router.push("/partner/bookings"); setProfileOpen(false); }}
+                  >
+                    Mes réservations
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                  <div
+                    className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        const { data } = await axios.get("/api/partner/my-active");
+                        router.push(data?._id ? `/partner/active-ride?bookingId=${data._id}` : "/partner/active-ride");
+                      } catch { router.push("/partner/active-ride"); }
+                      setProfileOpen(false);
+                    }}
+                  >
+                    Trajet actif
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                  <div
+                    className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={() => { router.push("/partner/wallet"); setProfileOpen(false); }}
+                  >
+                    Wallet
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                </>
+              )}
+
+
+
               <button
                 className="w-full flex items-center gap-3 py-3 hover:bg-gray-100
                           rounded-xl mt-2"
@@ -405,7 +459,7 @@ function Navbar() {
           </motion.div>
         </>
       )}
-      <AnimatePresence></AnimatePresence>
+      </AnimatePresence>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );

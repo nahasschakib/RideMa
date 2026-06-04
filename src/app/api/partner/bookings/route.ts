@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
+import "@/models/vehicle.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {

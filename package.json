@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=\"--max-http-header-size=32768\" next dev",
+    "dev": "cross-env NODE_OPTIONS=\"--max-http-header-size=32768 --max-old-space-size=4096\" next dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run start --prefix socketServer\"",
     "build": "next build",
     "start": "next start",
@@ -33,6 +33,8 @@
     "react-icons": "^5.6.0",
     "react-leaflet": "^5.0.0",
     "react-redux": "^9.2.0",
+    "rechart": "^0.0.1",
+    "recharts": "^3.8.1",
     "resend": "^6.9.4",
     "socket.io-client": "^4.8.3",
     "stripe": "^22.1.1"

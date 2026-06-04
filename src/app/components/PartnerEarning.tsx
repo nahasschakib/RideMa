@@ -10,12 +10,12 @@ type EarningProps = {
   earnings: number;
 };
 
-function AdminEaring() {
+function PartnerEaring() {
   const [earningData, setEarningData] = useState<EarningProps[]>([]);
   useEffect(() => {
     const fetchEarnings = async () => {
       try {
-        const { data } = await axios.get("/api/admin/adminDashboard/earning");
+        const { data } = await axios.get("/api/partner/earning");
         const last7DaysData: EarningProps[] = data.slice(-7);
         setEarningData(last7DaysData);
       } catch (error) {
@@ -79,7 +79,7 @@ function AdminEaring() {
             className="inline-block text-[11px] font-semibold tracking-widest uppercase
             text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-2"
           >
-            Tableau de bord d&apos;administrateur
+            Tableau de bord du partenaire
           </span>
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
             Revenus journaliers
@@ -185,4 +185,4 @@ function AdminEaring() {
       );
     }
 
-export default AdminEaring;
+export default PartnerEaring;

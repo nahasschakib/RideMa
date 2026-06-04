@@ -35,23 +35,23 @@ export async function POST(req: NextRequest) {
     if (booking.dropOtpExpires < new Date()) {
       return NextResponse.json({ message: "Le code OTP expiré" }, { status: 400 });
     }
+    const isCash = booking.paymentStatus === "cash";
 
     booking.bookingStatus = "completed";
     booking.dropOtp = "";
     booking.dropOtpExpires = undefined;
 
-    if (booking.paymentStatus === "cash") {
-      const fare = booking.fare;
-      const adminCommission = Math.round(fare * 0.1 * 100) / 100;
-      const partnerAmount = Math.round(fare * 0.9 * 100) / 100;
+    const fare = booking.fare;
+    const adminCommission = Math.round(fare * 0.1 * 100) / 100;
+    const partnerAmount = Math.round(fare * 0.9 * 100) / 100;
+    booking.adminCommission = adminCommission;
+    booking.partnerAmount = partnerAmount;
 
-      booking.adminCommission = adminCommission;
-      booking.partnerAmount = partnerAmount;
-
+    if (isCash) {
       const driverId = booking.driver.toString();
 
       // Débit commission du wallet prépayé du conducteur
-      let wallet = await Wallet.findOneAndUpdate(
+      const wallet = await Wallet.findOneAndUpdate(
         { owner: booking.driver, ownerType: "driver" },
         {
           $inc: { balance: -adminCommission },

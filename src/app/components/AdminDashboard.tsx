@@ -115,10 +115,11 @@ function AdminDashboard() {
     </motion.div>
    </AnimatePresence>
 
-</main>
-<AdminEaring/>
+  <AdminEaring/>
 
-    </div>
+</main>
+
+</div>
   );
 }
 

@@ -132,7 +132,7 @@ export default function ActiveRidePage() {
         }
       );
       if (!data) {
-        router.replace("/partner/pending-requests");
+        router.replace("/");
         return;
       }
       setBooking(data);
