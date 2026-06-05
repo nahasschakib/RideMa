@@ -138,7 +138,8 @@ function AdminEaring() {
     className="h-56"
     
     >
-        <ResponsiveContainer width="100%" height="100%">
+        <div style={{ width: "100%", minHeight: 200 }}>
+        <ResponsiveContainer width="100%" height={200}>
             <BarChart
             data={earningData}
             barCategoryGap={"30%"}
@@ -177,6 +178,7 @@ function AdminEaring() {
 
             </BarChart>
         </ResponsiveContainer>
+        </div>
 
     </motion.div>
 </AnimatePresence>

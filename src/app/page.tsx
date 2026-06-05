@@ -1,7 +1,6 @@
 
 import Footer from "./components/Footer";
 import PublicHome from "./components/PublicHome";
-import AdminDashboard from "./components/AdminDashboard";
 import { auth } from "@/auth";
 import PartnerDashboard from "./components/PartnerDashboard";
 import Navbar from "./components/Navbar";
@@ -10,30 +9,27 @@ import User from "@/models/user.model";
 import GeoUpdater from "./components/GeoUpdater";
 
 export default async function Home() {
-  const session= await auth();
-  await dbConnect()
-  const user= await User.findOne({email:session?.user?.email})
-    return (
+  const session = await auth();
+  await dbConnect();
+  const user = await User.findOne({ email: session?.user?.email });
+  const plainUser = JSON.parse(JSON.stringify(user));
+
+  return (
     <div className="min-h-full w-full bg-white">
-      {user && <GeoUpdater userId={user.id}/>}
+      {plainUser && <GeoUpdater userId={plainUser?._id} />}
 
-      {user?.role=="partner" ?
-      <>
-      <Navbar/>
-      <PartnerDashboard />
-      </>
+      {plainUser?.role === "partner" ? (
+        <>
+          <Navbar />
+          <PartnerDashboard />
+        </>
+      ) : (
+        <>
+          <Navbar />
+          <PublicHome />
+        </>
+      )}
 
-      :
-      (user?.role=="admin" ?
-      <AdminDashboard />
-        :
-       <>
-       <Navbar/>
-       <PublicHome />
-       </>
-
-      )
-    }
       <Footer />
     </div>
   );

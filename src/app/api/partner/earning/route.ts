@@ -1,11 +1,13 @@
 import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
+import User from "@/models/user.model";
 import { NextResponse } from "next/server";
 
 export async function GET() {
 try{
     const session = await auth();
+    const driver= await User.findOne({email:session?.user?.email})
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
     }
@@ -16,7 +18,7 @@ try{
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
     const bookings= await Booking.find({
-        driver: session.user.id,
+        driver: driver._id,
         paymentStatus:{$in:["paid","cash"]},
         createdAt:{$gte:sevenDaysAgo}
     }).select("partnerAmount createdAt").sort({createdAt:1})

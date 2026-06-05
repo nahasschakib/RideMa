@@ -6,7 +6,6 @@ import { IUser } from '../../types/user'
 
 // Define a type for the slice state
 interface IuserState {
-  partnerOnBoardingSteps: number
   userData: IUser | null
 }
 

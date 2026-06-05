@@ -1,5 +1,5 @@
 "use client";
-import { Vehicle } from "@/models/vehicle.model";
+import { vehicleType } from "@/models/vehicle.model";
 import axios from "axios";
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import AnimatedCard from "@/app/components/AnimatedCard";
 
 export interface IVehicle {
   owner: IUser;
-  type: Vehicle;
+  type: vehicleType;
   model: string;
   number: string;
   baseFare?: number;

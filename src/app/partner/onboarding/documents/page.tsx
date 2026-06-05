@@ -38,7 +38,7 @@ function Page() {
 
       const { data } = await axios.post("/api/partner/onboarding/documents",formData);
       console.log("Réponse succès :", data);
-      router.push("/");
+      router.push("/partner/onboarding/bank");
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
       setError(axiosError?.response?.data?.message || "Une erreur est survenue");

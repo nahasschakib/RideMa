@@ -72,7 +72,7 @@ function Page() {
         vehicleModel: vehicleModel,
       });
       setLoading(false)
-      router.push("/");
+      router.push("/partner/onboarding/documents");
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
             setError(axiosError?.response?.data?.message || "Une erreur est survenue");

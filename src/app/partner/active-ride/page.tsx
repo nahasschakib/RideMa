@@ -331,6 +331,13 @@ export default function ActiveRidePage() {
     );
   }
 
+  if(!booking){
+    return <div className="bg-black w-full h-screen flex
+    justify-center items-center text-[20px] text-white">
+      Aucun trajet actif trouvé !
+    </div>
+  }
+
   if(status === "completed" && booking) {
     return (
       <CompletedScreen 

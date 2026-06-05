@@ -1,58 +1,104 @@
 "use client";
 import React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { motion } from "motion/react";
-import { FaFacebook, FaInstagram, FaLinkedinIn } from "react-icons/fa6";
+import { FaFacebook, FaInstagram } from "react-icons/fa6";
 import { FaXTwitter } from "react-icons/fa6";
 
-function Footer() {
+const services = [
+  { label: "Réserver un trajet", href: "/user/checkout" },
+  { label: "Nos véhicules",      href: "/user/checkout" },
+  { label: "Tarifs",             href: "/user/checkout" },
+  { label: "Zones desservies",   href: "/" },
+];
+
+const partners = [
+  { label: "Devenir chauffeur",  href: "/partner/onboarding/vehicle" },
+  { label: "Espace partenaire",  href: "/partner/pending-requests" },
+  { label: "Support",            href: "/contacts" },
+  { label: "CGU",                href: "/cgu" },
+];
+
+const socials = [
+  { Icon: FaXTwitter,  href: "https://x.com/maride" },
+  { Icon: FaFacebook,  href: "https://facebook.com/maride" },
+  { Icon: FaInstagram, href: "https://instagram.com/maride" },
+];
+
+export default function Footer() {
   return (
-    <div className="w-full bg-black text-white">
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.06, ease: "easeInOut" }}
-        viewport={{ once: true }}
-        className="max-w-7xl mx-auto px-6 py-16"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+    <footer style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }} className="text-white">
+      <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-12">
+
+          {/* Colonne 1 — Logo + description */}
           <div>
-            <h2 className="text-2xl font-bold tracking-wide">MaRide</h2>
+            <Link href="/">
+              <Image src="/logo1.png" alt="MaRide" width={120} height={40} className="object-contain" />
+            </Link>
             <p className="mt-4 text-gray-400 text-sm leading-relaxed">
-              Réservez n&apos;importe quel véhicule, du vélo au camion.
-              Propriétaires de confiance. Tarification transparente.
+              Du transport quotidien au transport lourd — tout sur une seule plateforme.
             </p>
-            <div className="flex mt-6 gap-6">
-              {[FaXTwitter, FaFacebook, FaInstagram, FaLinkedinIn].map(
-                (Icon, i) => {
-                  return (
-                    <motion.a
-                      key={i}
-                      whileHover={{ y: -3 }}
-                      href="#"
-                      className="w-10 h-10 flex items-center justify-center rounded-full border
-                border-white/10 hover:bg-white hover:text-black transition"
-                    >
-                      <Icon size={18} />
-                    </motion.a>
-                  );
-                },
-              )}
-            </div>
-           </div></div>
-            <div className="border-t border-white/10">
-              <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row
-              justify-between items-center text-xs text-gray-500 gap-4">
-                <p>
-                  <span>©</span> {new Date().getFullYear()} MaRide. Tous
-                  droits réservés
-                </p>
-             </div>
-           </div>
-        
-       
-      </motion.div>
-    </div>
+          </div>
+
+          {/* Colonne 2 — Services */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-5">
+              Services
+            </h3>
+            <ul className="space-y-3">
+              {services.map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-gray-300 text-sm hover:text-white transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Colonne 3 — Partenaires */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-5">
+              Partenaires
+            </h3>
+            <ul className="space-y-3">
+              {partners.map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-gray-300 text-sm hover:text-white transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Bas du footer */}
+        <div
+          className="mt-14 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
+          style={{ borderTop: "1px solid #1a1a1a" }}
+        >
+          <p className="text-xs text-gray-500">
+            © {new Date().getFullYear()} MaRide. Tous droits réservés.
+          </p>
+          <div className="flex gap-3">
+            {socials.map(({ Icon, href }) => (
+              <motion.a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ y: -2 }}
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-white/15 hover:border-white/40 transition-colors"
+              >
+                <Icon size={15} />
+              </motion.a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
-
-export default Footer;

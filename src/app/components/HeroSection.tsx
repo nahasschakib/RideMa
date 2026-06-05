@@ -14,10 +14,10 @@ const router= useRouter()
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div className="absolute inset-0 bg-cover bg-center bg-[url('/here-section.jpg')]" />
+      <div className="absolute inset-0 bg-cover bg-center bg-[url('/driver-dressed-elegant-costume.jpg')]" />
       <div className="absolute inset-0 bg-black/60" />
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 text-center">
-       
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 pt-20 text-center">
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

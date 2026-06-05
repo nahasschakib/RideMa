@@ -67,7 +67,7 @@ const sanitizedRibiban = ribiban.trim().replace(/\s+/g, '').toUpperCase();
       });
       console.log("Réponse succès :", data);
       setLoading(false)
-      router.push("/")
+      window.location.href="/"
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
       setError(axiosError?.response?.data?.message || "Une erreur est survenue");
