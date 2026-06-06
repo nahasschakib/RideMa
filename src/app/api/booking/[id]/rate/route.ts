@@ -6,7 +6,7 @@ import User from "@/models/user.model";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -16,9 +16,10 @@ export async function POST(
     return NextResponse.json({ error: "Note invalide (1–5)" }, { status: 400 });
 
   await dbConnect();
+  const { id } = await context.params;
 
   const booking = await Booking.findOne({
-    _id: params.id,
+    _id: id,
     user: session.user.id,
     bookingStatus: "completed",
   });
