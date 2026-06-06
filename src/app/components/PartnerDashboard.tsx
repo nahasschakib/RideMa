@@ -98,6 +98,30 @@ function PartnerDashboard() {
           </p>
         </div>
 
+        {/* Carte résumé conducteur */}
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xl font-bold">
+              {userData?.name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800">{userData?.name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{userData?.email}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            {userData?.averageRating ? (
+              <div className="flex items-center gap-1 justify-end">
+                <span className="text-yellow-400 text-lg">⭐</span>
+                <span className="text-lg font-bold text-gray-800">{userData.averageRating.toFixed(1)}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400">Pas encore noté</span>
+            )}
+            <p className="text-xs text-gray-400 mt-0.5">Note conducteur</p>
+          </div>
+        </div>
+
         <div className="bg-white rounded-3xl p-10 shadow-xl border">
           <div className="overflow-x-auto pb-2">
             <div className="relative min-w-200">

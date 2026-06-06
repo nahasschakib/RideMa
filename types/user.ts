@@ -28,5 +28,6 @@ export interface IUser {
   videoKycRejectionReason:string;
   createdAt: string;
   updatedAt: string;
+  averageRating?: number;
 }
 
