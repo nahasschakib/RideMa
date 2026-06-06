@@ -110,6 +110,20 @@ export default function ActiveRidePage() {
   const [status, setStatus] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const handleCancel = async () => {
+    if (!booking) return;
+    setCancelLoading(true);
+    try {
+      await axios.post(`/api/booking/${booking._id}/cancel`);
+      router.push("/user/bookings");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
   const {id}=useParams()
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -257,6 +271,7 @@ export default function ActiveRidePage() {
     onAction: handleAction,
   };
 
+  const canCancel = ["requested", "awaiting_payment", "confirmed"].includes(booking?.bookingStatus ?? "");
   const cfg = STATUS_LABELS[booking.bookingStatus];
 
   return (
@@ -317,6 +332,17 @@ export default function ActiveRidePage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             <PanelContent {...panelProps} />
+            {canCancel && (
+              <div className="px-5 pb-5">
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelLoading}
+                  className="w-full mt-3 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 py-3 rounded-xl text-sm font-medium transition border border-red-200"
+                >
+                  {cancelLoading ? "Annulation..." : "Annuler la course"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
@@ -375,6 +401,17 @@ export default function ActiveRidePage() {
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <PanelContent {...panelProps}/>
+            {canCancel && (
+              <div className="px-5 pb-5">
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelLoading}
+                  className="w-full mt-3 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 py-3 rounded-xl text-sm font-medium transition border border-red-200"
+                >
+                  {cancelLoading ? "Annulation..." : "Annuler la course"}
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

@@ -20,6 +20,7 @@ export async function POST(
             )
         }
         booking.bookingStatus="cancelled"
+        booking.paymentStatus="failed"
 
         await booking.save()
         return NextResponse.json(
