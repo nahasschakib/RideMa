@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import DepositRequest from "@/models/depositRequest.model";
+import Wallet from "@/models/wallet.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -35,6 +36,11 @@ export async function POST(req: NextRequest) {
       amount,
       receiptDescription,
     });
+
+    await Wallet.findOneAndUpdate(
+      { owner: session.user.id, ownerType: "driver" },
+      { "deposit.status": "pending", "deposit.amount": amount }
+    );
 
     return NextResponse.json({ success: true, depositRequest }, { status: 201 });
   } catch (error) {

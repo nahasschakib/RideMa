@@ -13,9 +13,20 @@ interface ITransaction {
   createdAt?: string;
 }
 
+interface DepositInfo {
+  amount: number;
+  status: "none" | "pending" | "active" | "refunded";
+  paidAt?: string;
+  refundedAt?: string;
+}
+
 interface WalletData {
   balance: number;
   transactions: ITransaction[];
+  deposit: DepositInfo;
+  depositThreshold: number;
+  walletMinimum: number;
+  isActive: boolean;
 }
 
 const reasonLabel: Record<string, string> = {
@@ -29,6 +40,10 @@ export default function WalletPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositCode, setDepositCode] = useState("");
+  const [depositDescription, setDepositDescription] = useState("");
 
   useEffect(() => {
     axios
@@ -37,6 +52,27 @@ export default function WalletPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSubmitDeposit = async () => {
+    if (!depositCode.trim()) return;
+    setDepositLoading(true);
+    try {
+      await axios.post("/api/driver/wallet/submit-deposit", {
+        depositCode: depositCode.trim(),
+        amount: wallet?.depositThreshold ?? 500,
+        receiptDescription: depositDescription.trim() || "Dépôt de garantie",
+      });
+      const { data } = await axios.get<WalletData>("/api/partner/wallet");
+      setWallet(data);
+      setShowDepositModal(false);
+      setDepositCode("");
+      setDepositDescription("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDepositLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -67,6 +103,45 @@ export default function WalletPage() {
                 {(wallet?.balance ?? 0).toFixed(2)}{" "}
                 <span className="text-xl text-zinc-400">MAD</span>
               </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Dépôt de garantie */}
+      <div className="max-w-lg mx-auto px-4 mt-4">
+        <div className="bg-zinc-900 rounded-2xl p-5 border border-white/10">
+          <p className="text-sm text-zinc-400 mb-1">Dépôt de garantie</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xl font-bold">
+                {wallet?.deposit?.status === "none"
+                  ? (wallet?.depositThreshold ?? 500)
+                  : (wallet?.deposit?.amount ?? 0)} MAD
+              </p>
+              <p className="text-xs mt-1">
+                {wallet?.deposit?.status === "none" && (
+                  <span className="text-yellow-400">Non soumis</span>
+                )}
+                {wallet?.deposit?.status === "pending" && (
+                  <span className="text-blue-400">En attente de validation</span>
+                )}
+                {wallet?.deposit?.status === "active" && (
+                  <span className="text-green-400">Actif ✓</span>
+                )}
+                {wallet?.deposit?.status === "refunded" && (
+                  <span className="text-zinc-400">Remboursé</span>
+                )}
+              </p>
+            </div>
+            {wallet?.deposit?.status === "none" && (
+              <button
+                onClick={() => setShowDepositModal(true)}
+                disabled={depositLoading}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-xl transition"
+              >
+                {depositLoading ? "..." : "Soumettre"}
+              </button>
             )}
           </div>
         </div>
@@ -142,6 +217,54 @@ export default function WalletPage() {
           </div>
         )}
       </div>
+
+      {showDepositModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 pb-8 px-4">
+          <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-lg border border-white/10">
+            <h2 className="text-lg font-semibold mb-1">Soumettre le dépôt de garantie</h2>
+            <p className="text-sm text-zinc-400 mb-5">
+              Montant fixe : <span className="text-white font-medium">{wallet?.depositThreshold ?? 500} MAD</span>
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-1 block">Référence du virement *</label>
+                <input
+                  type="text"
+                  value={depositCode}
+                  onChange={(e) => setDepositCode(e.target.value)}
+                  placeholder="Ex: VIR-2026-XXXXX"
+                  className="w-full bg-zinc-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-zinc-400 mb-1 block">Description (optionnel)</label>
+                <input
+                  type="text"
+                  value={depositDescription}
+                  onChange={(e) => setDepositDescription(e.target.value)}
+                  placeholder="Ex: Virement CIH du 06/06/2026"
+                  className="w-full bg-zinc-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDepositModal(false)}
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl text-sm transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmitDeposit}
+                disabled={depositLoading || !depositCode.trim()}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition"
+              >
+                {depositLoading ? "Envoi..." : "Confirmer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -175,6 +175,15 @@ function Navbar() {
                           {userData.role !== "partner" && userData.role !== "admin" && (
                             <div
                               className="w-full flex items-center gap-3 pl-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                              onClick={() => { router.push("/user/profile"); setProfileOpen(false); }}
+                            >
+                              Mon Profil
+                              <ChevronRight size={16} className="ml-auto" />
+                            </div>
+                          )}
+                          {userData.role !== "partner" && userData.role !== "admin" && (
+                            <div
+                              className="w-full flex items-center gap-3 pl-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
                               onClick={() => router.push("/user/bookings")}
                             >
                               Réservations
@@ -187,6 +196,15 @@ function Navbar() {
                               onClick={() => router.push("/admin/dashboard")}
                             >
                               Dashboard Admin
+                              <ChevronRight size={16} className="ml-auto" />
+                            </div>
+                          )}
+                          {userData.role === "admin" && (
+                            <div
+                              className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                              onClick={() => router.push("/admin/wallet")}
+                            >
+                              Gestion dépôts
                               <ChevronRight size={16} className="ml-auto" />
                             </div>
                           )}
@@ -281,6 +299,26 @@ function Navbar() {
                     onClick={() => { router.push("/admin/dashboard"); setProfileOpen(false); }}
                   >
                     Dashboard Admin
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                )}
+
+                {userData.role === "admin" && (
+                  <div
+                    className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={() => { router.push("/admin/wallet"); setProfileOpen(false); }}
+                  >
+                    Gestion dépôts
+                    <ChevronRight size={16} className="ml-auto" />
+                  </div>
+                )}
+
+                {userData.role !== "partner" && userData.role !== "admin" && (
+                  <div
+                    className="w-full flex items-center gap-3 pl-3 pt-3 pb-3 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    onClick={() => { router.push("/user/profile"); setProfileOpen(false); }}
+                  >
+                    Mon Profil
                     <ChevronRight size={16} className="ml-auto" />
                   </div>
                 )}

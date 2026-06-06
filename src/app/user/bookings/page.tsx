@@ -46,6 +46,7 @@ interface IBooking {
   pickUpOtpExpires: Date;
   dropOtp: string;
   dropOtpExpires: Date;
+  rating?: { score: number | null; comment: string; ratedAt: string | null };
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -114,6 +115,10 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router =useRouter()
+  const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingSaving, setRatingSaving] = useState(false);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -144,6 +149,31 @@ export default function Page() {
         minute: "2-digit",
       })
       .replace(",", " à");
+  };
+
+  const handleRate = async () => {
+    if (!ratingBookingId || ratingScore < 1) return;
+    setRatingSaving(true);
+    try {
+      await axios.post(`/api/booking/${ratingBookingId}/rate`, {
+        score: ratingScore,
+        comment: ratingComment.trim(),
+      });
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === ratingBookingId
+            ? { ...b, rating: { score: ratingScore, comment: ratingComment, ratedAt: new Date().toISOString() } }
+            : b
+        )
+      );
+      setRatingBookingId(null);
+      setRatingScore(0);
+      setRatingComment("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRatingSaving(false);
+    }
   };
 
   const filterBookings =
@@ -344,6 +374,14 @@ export default function Page() {
                         </button>
                       </div>
                     )}
+                    {b.bookingStatus === "completed" && !b.rating?.score && (
+                      <button
+                        onClick={() => { setRatingBookingId(b._id); setRatingScore(0); setRatingComment(""); }}
+                        className="flex items-center gap-1 text-sm font-medium text-yellow-700 bg-yellow-100 hover:bg-yellow-200 transition-colors px-4 py-1.5 rounded-lg"
+                      >
+                        <span className="text-xs">⭐ Noter</span>
+                      </button>
+                    )}
                     </div>
                    
 
@@ -354,6 +392,47 @@ export default function Page() {
           )}
         </div>
       </div>
+      {ratingBookingId && (
+        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 pb-8 px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+            <h2 className="text-lg font-semibold text-gray-800 mb-1">Noter le conducteur</h2>
+            <p className="text-sm text-gray-500 mb-5">Votre avis aide la communauté MaRide</p>
+            <div className="flex justify-center gap-3 mb-5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRatingScore(star)}
+                  className={`text-3xl transition-transform hover:scale-110 ${star <= ratingScore ? "opacity-100" : "opacity-30"}`}
+                >
+                  ⭐
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              placeholder="Commentaire optionnel..."
+              rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400 resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRatingBookingId(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl text-sm transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleRate}
+                disabled={ratingSaving || ratingScore < 1}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition"
+              >
+                {ratingSaving ? "Envoi..." : "Envoyer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

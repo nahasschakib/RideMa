@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       user.partnerOnboardingSteps = 3;
    
     user.partnerStatus="pending"
+    user.role = "partner";
     await user.save();
 
     
@@ -81,8 +82,10 @@ export async function GET(req: NextRequest) {
       return Response.json({ message: "informations bancaires non trouvées" }, { status: 404 });
     }
 
-    // ✅ .toObject() pour éviter "Value is not JSON serializable"
-    return Response.json(partnerBank.toObject(), { status: 200 });
+    return Response.json({
+      ...partnerBank.toObject(),
+      mobileNumber: user.mobileNumber ?? ""
+    }, { status: 200 });
   } catch (error) {
     console.error("GET /api/partner/onboarding/bank error:", error);
     return Response.json(

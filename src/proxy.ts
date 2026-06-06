@@ -8,19 +8,23 @@ const PUBLIC_ROUTES = ["/"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  const nextConfig = { request: { headers: requestHeaders } };
+
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     /\.(css|js|png|jpg|jpeg|svg|ico|gif|webp|avif)$/.test(pathname)
   ) {
-    return NextResponse.next();
+    return NextResponse.next(nextConfig);
   }
 
   if (PUBLIC_ROUTES.includes(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next(nextConfig);
   }
   if (pathname.startsWith("/api/auth")) {
-    return NextResponse.next();
+    return NextResponse.next(nextConfig);
   }
 
   // Callbacks externes sans session : webhook Stripe, callback CMI
@@ -57,17 +61,17 @@ export async function proxy(req: NextRequest) {
   }
   if (pathname.startsWith("/partner")) {
     if(pathname.startsWith("/partner/onboarding")){
-        return NextResponse.next()
+        return NextResponse.next(nextConfig)
     }
     if(pathname.startsWith("/partner/bookings")){
-        return NextResponse.next()
+        return NextResponse.next(nextConfig)
     }
     if (role !== "partner") {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
-  
-  return NextResponse.next()
+
+  return NextResponse.next(nextConfig)
 }
 
 export const config={

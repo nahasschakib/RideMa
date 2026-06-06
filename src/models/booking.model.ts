@@ -48,6 +48,11 @@ export interface IBooking {
   pickUpOtpExpires: Date;
   dropOtp: string;
   dropOtpExpires: Date;
+  rating?: {
+    score: number | null;
+    comment: string;
+    ratedAt: Date | null;
+  };
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -136,10 +141,11 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       dropOtpExpires:{
         type:Date
     },
-
-
-
-
+    rating: {
+      score: { type: Number, min: 1, max: 5, default: null },
+      comment: { type: String, default: "" },
+      ratedAt: { type: Date, default: null },
+    },
   },{ timestamps: true },
 );
 const Booking = mongoose.models.Booking || mongoose.model("Booking",bookingSchema)

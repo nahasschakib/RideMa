@@ -85,7 +85,7 @@ const sanitizedRibiban = ribiban.trim().replace(/\s+/g, '').toUpperCase();
         setAccountHolder(data.partnerBank.accountHolder)
         setAccountNumber(data.partnerBank.accountNumber)
         setRibiban(data.partnerBank.ribiban)
-        setMobilNumber(data.mobilNumber)
+        setMobilNumber(data.mobileNumber ?? "")
      
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;

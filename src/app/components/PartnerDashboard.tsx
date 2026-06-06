@@ -4,7 +4,8 @@ import { RootState } from "@/redux/store";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ArrowRight, Check, Clock, Lock, Video } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { setUserData } from "@/redux/userSlice";
 import RejectionCard from "./RejectionCard";
 import StatusCard from "./StatusCard";
 import ActionCard from "./ActionCard";
@@ -34,6 +35,7 @@ const TOTAL_STEPS = STEPS.length;
 
 function PartnerDashboard() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { userData } = useSelector((state: RootState) => state.user);
   const onBoardingSteps = userData?.partnerOnBoardingSteps ?? 0;
   const activeStep = onBoardingSteps + 1;
@@ -56,7 +58,19 @@ function PartnerDashboard() {
 
     handleGetPricing();
   }, [onBoardingSteps]);
-  
+
+  useEffect(() => {
+    if (userData?.partnerStatus !== "pending") return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await axios.get("/api/user/admin");
+        dispatch(setUserData(data));
+      } catch {
+        // silently ignore
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [userData?.partnerStatus, dispatch]);
 
   const goToStep = (step: Step) => {
     if (

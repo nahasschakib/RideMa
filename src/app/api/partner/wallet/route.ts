@@ -18,7 +18,14 @@ export async function GET() {
     }).lean();
 
     if (!wallet) {
-      return NextResponse.json({ balance: 0, transactions: [] });
+      return NextResponse.json({
+        balance: 0,
+        transactions: [],
+        deposit: { amount: 0, status: "none" },
+        depositThreshold: 500,
+        walletMinimum: 100,
+        isActive: false,
+      });
     }
 
     const transactions = [...(wallet.transactions ?? [])]
@@ -28,7 +35,14 @@ export async function GET() {
         return db - da;
       });
 
-    return NextResponse.json({ balance: wallet.balance, transactions });
+    return NextResponse.json({
+      balance: wallet.balance,
+      transactions,
+      deposit: wallet.deposit,
+      depositThreshold: wallet.depositThreshold,
+      walletMinimum: wallet.walletMinimum,
+      isActive: wallet.isActive,
+    });
   } catch (error) {
     return NextResponse.json(
       { message: `wallet error ${error}` },
