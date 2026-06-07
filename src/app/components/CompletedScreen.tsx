@@ -103,7 +103,7 @@ function CompletedScreen({
 )}
 
 <button 
-  onClick={() => router.push("/")}
+  onClick={() => router.push(role === "driver" ? "/partner/dashboard" : "/")}
   className="w-full border border-zinc-700 text-zinc-400 rounded-2xl py-3 text-sm font-semibold hover:bg-zinc-900 transition-colors"
 >
     Retour à l&apos;accueil

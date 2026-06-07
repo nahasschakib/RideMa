@@ -214,7 +214,8 @@ export default function ActiveRidePage() {
         setBooking((b) => (b ? { ...b, bookingStatus: "started" } : b));
       } else if (booking.bookingStatus === "started") {
         await axios.post(`/api/booking/${booking._id}/complete`);
-        router.replace("/partner/pending-requests");
+        setBooking((b) => (b ? { ...b, bookingStatus: "completed" } : b));
+        setStatus("completed");
       }
     } catch (err) {
       if (err instanceof AxiosError) {
