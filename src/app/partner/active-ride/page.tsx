@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Car,
   ChevronUp,
-  KeyRound,
   Loader2,
   Navigation,
   Phone,
@@ -121,40 +120,8 @@ export default function ActiveRidePage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const [dropOtpMode, setDropOtpMode] = useState(false);
-  const [dropOtp, setDropOtp] = useState("");
-  const [loadingDropOtp, setLoadingDropOtp] = useState(false);
-  const [dropOtpVerified, setDropOtpVerified] = useState(false);
-  const [dropOtpError, setDropOtpError] = useState("");
-
   const [isDesktop, setIsDesktop] = useState(false);
 
-  const handleSendDropOtp = async () => {
-    try {
-      const { data } = await axios.post("/api/partner/bookings/otp/drop/send", {
-        bookingId: booking?._id,
-      });
-     setDropOtpMode(true);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const handleVerifyDropOtp = async () => {
-    setLoadingDropOtp(true);
-    try {
-      const { data } = await axios.post(
-        "/api/partner/bookings/otp/drop/verify",
-        { bookingId: booking?._id, otp:dropOtp },
-      );
-     setLoadingDropOtp(false);
-     setDropOtpMode(true)
-     setStatus("completed");
-     setBooking(prev => prev ? { ...prev, bookingStatus: "completed" } : prev);
-    } catch (error: unknown) {
-      setLoadingDropOtp(false);
-      setDropOtpError((error as { response?: { data?: { message?: string } } }).response?.data?.message ?? "OTP invalide, veuillez réessayer.");
-    }
-  }
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024);
     check();
@@ -424,89 +391,20 @@ export default function ActiveRidePage() {
                 </button>
               )}
 
-                 {status === "started" && ! dropOtpMode &&  (
-                  <motion.button
-                    key="drop"
-                    onClick={() => handleSendDropOtp()}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97]
+              {status === "started" && (
+                <motion.button
+                  key="complete"
+                  onClick={() => handleAction()}
+                  disabled={actionLoading}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97] disabled:opacity-50
   text-white py-4 rounded-2xl font-bold text-sm tracking-wide
   transition-all flex items-center justify-center gap-2"
-                  >
-                    <Navigation size={15} /> Marquer comme déposé <ArrowRight size={15} className="ml-1" />
-                  </motion.button>
-                )}
-
-              {status === "started" && dropOtpMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden"
                 >
-                  <div className="px-4 py-3 flex items-center gap-2 bg-zinc-950">
-                    <KeyRound size={14} className="text-amber-400" />
-                    <p className="text-white text-xs font-bold tracking-wide uppercase">
-                      Saisissez le code OTP du client
-                    </p>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <p className="text-zinc-500 text-xs text-center">
-                      Demandez au client son code OTP à 4 chiffres pour terminer
-                      le trajet.
-                    </p>
-                    <div className="flex justify-center">
-                      <input
-                        type="text"
-                        onChange={(e) => {
-                          setDropOtp(e.target.value.replace(/\D/g, ""));
-                          setDropOtpError("");
-                        }}
-                        placeholder=". . . ."
-                        className="w-48 border-2 border-zinc-200 focus:border-zinc-900 rounded-xl
-                      px-4 py-3 text-center text-2xl tracking-[0.5em] font-black outline-none transition-colors"
-                      />
-                    </div>
-                    {dropOtpError && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-red-500 text-xs text-center font-medium"
-                      >
-                        {dropOtpError}
-                      </motion.p>
-                    )}
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setDropOtpMode(false);
-                          setDropOtp("");
-                          setDropOtpError("");
-                        }}
-                        className="flex-1 border border-zinc-200  bg-white text-zinc-700 py-2.5 rounded-xl text-sm font-semi-bold  active:scale-[0.97]  transition-all"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        onClick={handleVerifyDropOtp}
-                        disabled={loadingDropOtp || dropOtp.length < 4}
-                        className="flex-1 bg-zinc-900 hover:bg-zinc-800
-                      disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-bold active:scale-[0.97]
-                      transition-all"
-                      >
-                        {loadingDropOtp ? (
-                          <span className="flex items-center justify-center gap-2">Vérification...</span>
-                        ) : (
-                          <span>Verifier OTP</span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
+                  <Navigation size={15} /> {actionLoading ? "..." : "Terminer le trajet"} <ArrowRight size={15} className="ml-1" />
+                </motion.button>
               )}
             </AnimatePresence>
             
@@ -584,89 +482,20 @@ export default function ActiveRidePage() {
                 </button>
               )}
 
-                 {status === "started" && ! dropOtpMode &&  (
-                  <motion.button
-                    key="drop"
-                    onClick={() => handleSendDropOtp()}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97]
+              {status === "started" && (
+                <motion.button
+                  key="complete"
+                  onClick={() => handleAction()}
+                  disabled={actionLoading}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97] disabled:opacity-50
   text-white py-4 rounded-2xl font-bold text-sm tracking-wide
   transition-all flex items-center justify-center gap-2"
-                  >
-                    <Navigation size={15} /> Marquer comme déposé <ArrowRight size={15} className="ml-1" />
-                  </motion.button>
-                )}
-
-              {status === "started" && dropOtpMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden"
                 >
-                  <div className="px-4 py-3 flex items-center gap-2 bg-zinc-950">
-                    <KeyRound size={14} className="text-amber-400" />
-                    <p className="text-white text-xs font-bold tracking-wide uppercase">
-                      Saisissez le code OTP du client
-                    </p>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <p className="text-zinc-500 text-xs text-center">
-                      Demandez au client son code OTP à 4 chiffres pour terminer
-                      le trajet.
-                    </p>
-                    <div className="flex justify-center">
-                      <input
-                        type="text"
-                        onChange={(e) => {
-                          setDropOtp(e.target.value.replace(/\D/g, ""));
-                          setDropOtpError("");
-                        }}
-                        placeholder=". . . ."
-                        className="w-48 border-2 border-zinc-200 focus:border-zinc-900 rounded-xl
-                      px-4 py-3 text-center text-2xl tracking-[0.5em] font-black outline-none transition-colors"
-                      />
-                    </div>
-                    {dropOtpError && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-red-500 text-xs text-center font-medium"
-                      >
-                        {dropOtpError}
-                      </motion.p>
-                    )}
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setDropOtpMode(false);
-                          setDropOtp("");
-                          setDropOtpError("");
-                        }}
-                        className="flex-1 border border-zinc-200  bg-white text-zinc-700 py-2.5 rounded-xl text-sm font-semi-bold  active:scale-[0.97]  transition-all"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        onClick={handleVerifyDropOtp}
-                        disabled={loadingDropOtp || dropOtp.length < 4}
-                        className="flex-1 bg-zinc-900 hover:bg-zinc-800
-                      disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-bold active:scale-[0.97]
-                      transition-all"
-                      >
-                        {loadingDropOtp ? (
-                          <span className="flex items-center justify-center gap-2">Vérification...</span>
-                        ) : (
-                          <span>Verifier OTP</span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
+                  <Navigation size={15} /> {actionLoading ? "..." : "Terminer le trajet"} <ArrowRight size={15} className="ml-1" />
+                </motion.button>
               )}
             </AnimatePresence>
             

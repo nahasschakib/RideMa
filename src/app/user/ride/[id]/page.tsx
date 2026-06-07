@@ -111,6 +111,7 @@ export default function ActiveRidePage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const handleCancel = async () => {
     if (!booking) return;
@@ -173,10 +174,15 @@ export default function ActiveRidePage() {
     socket.on("driver-location",({latitude,longitude})=>{
       setDriverPos([latitude,longitude])
     })
-    
+    socket.on("booking:started", () => {
+      setToast("🚗 Votre conducteur a démarré le trajet");
+      setTimeout(() => setToast(null), 4000);
+    });
+
      return ()=>{
       socket.off("join-ride")
       socket.off("driver-location")
+      socket.off("booking:started")
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -415,6 +421,12 @@ export default function ActiveRidePage() {
           </div>
         </motion.div>
       </div>
+
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 text-white text-sm px-5 py-3 rounded-2xl shadow-lg animate-fade-in">
+          {toast}
+        </div>
+      )}
     </div>
 
 

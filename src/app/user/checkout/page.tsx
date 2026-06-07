@@ -66,6 +66,9 @@ function CheckoutContent() {
         if (data.booking) {
           setBookingId(data.booking._id)
           setStatus(data.booking.bookingStatus as Status)
+          if (data.booking?.paymentMethod) {
+            setPaymentMethod(data.booking.paymentMethod)
+          }
         }
       })
       .catch(() => {})
@@ -118,13 +121,17 @@ function CheckoutContent() {
       .catch(() => {})
   }, [bookingIdParam, paymentParam])
 
-  useEffect(()=>{
-    if(status!=="awaiting_payment")return;
-    const t = setTimeout(()=>{
-      setStatus("payment")
-    },3000)
-    return()=>{clearTimeout(t)}
-  },[status])
+  useEffect(() => {
+    if (status !== "awaiting_payment" || !bookingId) return;
+    if (paymentMethod === "cash") {
+      axios.post(`/api/booking/${bookingId}/confirm-payment`, { paymentMethod: "cash" })
+        .then(() => setStatus("confirmed"))
+        .catch(() => setStatus("payment"));
+    } else {
+      const t = setTimeout(() => setStatus("payment"), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [status, bookingId, paymentMethod]);
 
   useEffect(() => {
     if ((status === "confirmed" || status === "started") && bookingId) {
@@ -163,6 +170,7 @@ function CheckoutContent() {
         dropLocation:   { type: "Point", coordinates: [dropLong,   dropLat]  },
         fare:           Number(fare),
         mobileNumber:   mobile,
+        paymentMethod,
       }, { timeout: 10000 })
       setBookingId(data._id)
       setStatus((data.bookingStatus ?? "requested") as Status)
@@ -350,7 +358,7 @@ function CheckoutContent() {
                           {[
                             { icon: <Clock size={14} />,      text: "Le conducteur répondra dans les 2 minutes" },
                             { icon: <Shield size={14} />,     text: "Uniquement des conducteurs assurés" },
-                            { icon: <CreditCard size={14} />, text: "Payez après acceptation du conducteur" },
+                            { icon: <CreditCard size={14} />, text: "Choisissez votre mode de paiement ci-dessous" },
                           ].map((item, i) => (
                             <div key={i} className="flex items-center gap-3">
                               <div className="w-7 h-7 rounded-xl bg-zinc-200 flex items-center justify-center text-zinc-600 shrink-0">{item.icon}</div>
@@ -358,6 +366,41 @@ function CheckoutContent() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Sélecteur mode de paiement */}
+                        <div className="mt-5 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-2">Mode de paiement</p>
+                          {[
+                            { value: "cash", label: "Espèces", description: "Payer le conducteur après le trajet" },
+                            { value: "cmi", label: "Carte marocaine (CMI)", description: "Visa / Mastercard · banques marocaines" },
+                            { value: "stripe", label: "Carte internationale", description: "Visa / Mastercard · paiement sécurisé Stripe" },
+                          ].map((option) => (
+                            <div
+                              key={option.value}
+                              onClick={() => setPaymentMethod(option.value as "cash" | "cmi" | "stripe")}
+                              className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
+                                paymentMethod === option.value
+                                  ? "border-zinc-900 bg-zinc-900 text-white"
+                                  : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-400"
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <p className={`text-sm font-bold ${paymentMethod === option.value ? "text-white" : "text-zinc-800"}`}>
+                                  {option.label}
+                                </p>
+                                <p className={`text-xs mt-0.5 ${paymentMethod === option.value ? "text-zinc-300" : "text-zinc-400"}`}>
+                                  {option.description}
+                                </p>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                paymentMethod === option.value ? "border-white" : "border-zinc-300"
+                              }`}>
+                                {paymentMethod === option.value && <div className="w-2 h-2 rounded-full bg-white" />}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
                         {error && (
                           <div className="mt-4 flex items-center gap-2 text-red-500 text-xs font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                             <AlertCircle size={13} className="shrink-0" />{error}

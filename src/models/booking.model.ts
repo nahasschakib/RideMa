@@ -39,6 +39,7 @@ export interface IBooking {
   bookingStatus: BookingStatus;
 
   paymentStatus: PaymentStatus;
+  paymentMethod?: "cash" | "cmi" | "stripe";
 
   paymentDeadline:Date;
   adminCommission: number;
@@ -117,6 +118,11 @@ const bookingSchema = new mongoose.Schema<IBooking>(
         type:String,
         enum:["pending", "paid" , "cash" , "failed"],
         default:"pending"
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "cmi", "stripe"],
+      default: "cash",
     },
     paymentDeadline:{
       type:Date

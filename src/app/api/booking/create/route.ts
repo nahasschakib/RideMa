@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
+import Wallet from "@/models/wallet.model";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       dropLocation,
       fare,
       mobileNumber,
+      paymentMethod,
     } = await req.json();
 
     if (
@@ -65,28 +67,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Vérifier le wallet du conducteur
+    const wallet = await Wallet.findOne({ owner: driverId, ownerType: "driver" });
+    const skipDepositCheck = process.env.SKIP_DEPOSIT_CHECK === "true";
+    if (!skipDepositCheck) {
+      if (!wallet || wallet.deposit.status !== "active" || !wallet.isActive) {
+        return NextResponse.json(
+          { message: "Ce conducteur n'est pas disponible pour le moment." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const isCash = (paymentMethod ?? "cash") === "cash";
+
     const booking = await Booking.create({
-      user:              session.user.id,
+      user:               session.user.id,
       driver,
-      vehicle:           vehicleId,
+      vehicle:            vehicleId,
       pickUpAddress,
       dropAddress,
       pickUpLocation,
       dropLocation,
       fare,
-      userMobileNumber:  mobileNumber,
+      userMobileNumber:   mobileNumber,
       driverMobileNumber: driver.mobileNumber ?? "",
-      bookingStatus:     "requested",
+      bookingStatus:      isCash ? "confirmed" : "requested",
+      paymentMethod:      paymentMethod ?? "cash",
+      paymentStatus:      isCash ? "cash" : "pending",
     });
 
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`, {
-        userId: driverId,
-        event: "new-booking",
-        data: { bookingId: booking._id, pickUpAddress, dropAddress, fare },
-      });
-    } catch {
-      console.warn("[socket] Server unavailable — skipped");
+    const socketUrl = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
+
+    // Notifier le conducteur
+    await axios.post(socketUrl, {
+      userId: driverId,
+      event: "new-booking",
+      data: { bookingId: booking._id, pickUpAddress, dropAddress, fare },
+    }).catch(() => console.warn("[socket] Driver notification failed"));
+
+    // Si cash : notifier le client immédiatement que c'est confirmé
+    if (isCash) {
+      await axios.post(socketUrl, {
+        userId: session.user.id,
+        event: "accept_booking",
+        data: "confirmed",
+      }).catch(() => console.warn("[socket] Client notification failed"));
     }
 
     return NextResponse.json(booking, { status: 201 });
