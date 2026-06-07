@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import PartnerNavbar from "@/app/components/PartnerNavbar";
+import GeoUpdater from "@/app/components/GeoUpdater";
 
 export default async function PartnerLayout({
   children,
@@ -24,6 +25,7 @@ export default async function PartnerLayout({
   return (
    <div className="h-screen flex flex-col overflow-hidden">
       <PartnerNavbar />
+      <GeoUpdater userId={session.user.id} />
       <div className="flex-1 overflow-auto pt-20 mt-3">
         {children}
       </div>
