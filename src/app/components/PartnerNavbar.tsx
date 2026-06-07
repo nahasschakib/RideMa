@@ -9,6 +9,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { LogOut, Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { setUserData } from "@/redux/userSlice";
+import { getSocket } from "@/lib/socket";
 import axios from "axios";
 
 const PARTNER_NAV = [
@@ -32,6 +33,27 @@ export default function PartnerNavbar() {
     dispatch(setUserData(null));
     router.push("/");
   };
+
+  useEffect(() => {
+    const socket = getSocket();
+    socket.on("new-booking", (data) => {
+      try {
+        const ctx = new AudioContext();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.frequency.value = 880;
+        oscillator.type = "sine";
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.8);
+      } catch {}
+      router.push(`/partner/active-ride?bookingId=${data.bookingId}`);
+    });
+    return () => { socket.off("new-booking"); };
+  }, []);
 
   useEffect(() => {
     const fetchCount = async () => {

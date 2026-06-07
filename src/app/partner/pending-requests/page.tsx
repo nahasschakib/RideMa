@@ -5,7 +5,6 @@ import axios, { AxiosError } from "axios";
 import { BookingStatus, PaymentStatus } from "@/models/booking.model";
 import { Clock, Loader2, MapPin, Navigation } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getSocket } from "@/lib/socket";
 
  interface IBooking {
   _id:string
@@ -131,31 +130,6 @@ function Page() {
       setActionLoading(null);
     }
   };
-
-  useEffect(()=>{
-    const socket =getSocket()
-    socket.on("new-booking", (data) => {
-      // Beep sonore
-      try {
-        const ctx = new AudioContext();
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        oscillator.frequency.value = 880;
-        oscillator.type = "sine";
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.8);
-      } catch {}
-      // Redirection automatique vers le trajet actif
-      router.push(`/partner/active-ride?bookingId=${data.bookingId}`);
-    })
-      return ()=>{
-        socket.off("new-booking")
-      }
-  },[])
 
   return (
     <div className="min-h-screen bg-[#f4f5f7]">
