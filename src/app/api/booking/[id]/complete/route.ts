@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
+import User from "@/models/user.model";
+import Vehicle from "@/models/vehicle.model";
 import Wallet from "@/models/wallet.model";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -117,6 +119,12 @@ export async function POST(
     await emitSocket(booking.user.toString(), "booking:completed", {
       bookingId: id,
     });
+
+    await User.findByIdAndUpdate(booking.driver, { isOnline: true });
+    await Vehicle.findOneAndUpdate(
+      { owner: booking.driver, status: "approved" },
+      { isAvailable: true }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
