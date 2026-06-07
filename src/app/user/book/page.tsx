@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeft,
@@ -22,6 +22,8 @@ import {
 import { useRouter } from "next/navigation";
 import { vehicleType } from "@/models/vehicle.model";
 import axios from "axios";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 const stepVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -48,8 +50,16 @@ type Prediction = {
 function Page() {
   const router = useRouter();
 
+  const userData = useSelector((state: RootState) => state.user.userData);
+
   const [vehicle, setVehicle] = useState<vehicleType>();
-  const [mobile, setMobile] = useState("");
+  const [mobile, setMobile] = useState(userData?.mobileNumber ?? "");
+
+  useEffect(() => {
+    if (userData?.mobileNumber) {
+      setMobile(userData.mobileNumber);
+    }
+  }, [userData?.mobileNumber]);
 
   const [pickup, setPickup] = useState("");
   const [pickUpCountry, setPickUpCountry] = useState("");
