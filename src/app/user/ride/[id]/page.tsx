@@ -152,6 +152,9 @@ export default function ActiveRidePage() {
       }
       setBooking(data);
       setStatus(data.bookingStatus);
+      if (["completed", "cancelled", "rejected"].includes(data.bookingStatus)) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      }
     } catch {
       // silencieux — on réessaie au prochain poll
     }
