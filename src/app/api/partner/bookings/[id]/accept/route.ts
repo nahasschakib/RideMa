@@ -52,7 +52,7 @@ export async function POST(
     booking.paymentDeadline = new Date(Date.now() + 5 * 60 * 1000);
     await booking.save();
 
-    const socketUrl = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
+    const socketUrl = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
     await axios.post(socketUrl, {
       userId: booking.user.toString(),
       event: "accept_booking",

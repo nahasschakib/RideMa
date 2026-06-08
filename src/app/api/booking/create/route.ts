@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       paymentStatus:      isCash ? "cash" : "pending",
     });
 
-    const socketUrl = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
+    const socketUrl = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
 
     // Notifier le conducteur
     await axios.post(socketUrl, {

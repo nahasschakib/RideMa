@@ -4,7 +4,7 @@ import Booking from "@/models/booking.model";
 import { NextRequest, NextResponse } from "next/server";
 
 async function emitSocket(userId: string, event: string, data: object) {
-  const url = `${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
+  const url = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
   try {
     await fetch(url, {
       method: "POST",

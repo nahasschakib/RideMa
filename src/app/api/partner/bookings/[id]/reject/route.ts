@@ -22,7 +22,7 @@ export async function POST(
       
         await booking.save()
 
-         await axios.post(`${process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`, {
+         await axios.post(`${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`, {
             userId: booking.user.toString(),
             event: "reject_booking",
             data: booking.bookingStatus,
