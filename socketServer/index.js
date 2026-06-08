@@ -38,6 +38,7 @@ const io = new Server(server, {
 })
 
 app.post("/emit", async (req,res)=>{
+  console.log("[emit] event:", req.body.event, "userId:", req.body.userId);
   const { userId, event, data }= req.body;
   try{
     const user = await User.findById(userId);
