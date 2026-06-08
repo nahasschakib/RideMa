@@ -36,6 +36,21 @@ export async function proxy(req: NextRequest) {
   }
 
   const session = await auth();
+   if (pathname.startsWith("/api/partner") || pathname.startsWith("/api/driver")) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const secret = process.env.NEXTAUTH_SECRET!;
+        const { jwtVerify } = await import("jose");
+        const encoder = new TextEncoder();
+        await jwtVerify(token, encoder.encode(secret));
+        return NextResponse.next(nextConfig);
+      } catch {
+        // token invalide, on continue vers la vérification session
+      }
+    }
+  }
 
   if (pathname.startsWith("/api")) {
     if (!session || !session?.user) {
