@@ -36,7 +36,7 @@ export async function proxy(req: NextRequest) {
   }
 
   const session = await auth();
-   if (pathname.startsWith("/api/partner") || pathname.startsWith("/api/driver")) {
+    if (pathname.startsWith("/api/partner") || pathname.startsWith("/api/driver") || pathname.startsWith("/api/user")) {
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
