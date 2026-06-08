@@ -23,7 +23,7 @@ export async function proxy(req: NextRequest) {
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next(nextConfig);
   }
-  if (pathname.startsWith("/api/auth")) {
+ if (pathname.startsWith("/api/auth") || pathname === "/api/mobile/login") {
     return NextResponse.next(nextConfig);
   }
 
