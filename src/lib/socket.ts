@@ -7,7 +7,10 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(SOCKET_URL);
+    socket = io(SOCKET_URL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+    });
   }
   return socket;
 };
