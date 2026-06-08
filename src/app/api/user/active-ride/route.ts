@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
+import "@/models/user.model";
+import "@/models/vehicle.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest){
