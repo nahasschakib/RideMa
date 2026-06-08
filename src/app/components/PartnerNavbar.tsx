@@ -37,7 +37,6 @@ export default function PartnerNavbar() {
   useEffect(() => {
     const socket = getSocket();
     socket.on("new-booking", (data) => {
-      console.log("[PartnerNavbar] new-booking reçu:", data);
       try {
         const ctx = new AudioContext();
         const oscillator = ctx.createOscillator();
