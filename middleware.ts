@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "./src/auth";
 
-export async function middleware(req: NextRequest) {
+const mobileRoutes = [
+  "/api/partner", "/api/driver", "/api/user", "/api/search",
+  "/api/place-details", "/api/geocode", "/api/directions",
+  "/api/vehicles", "/api/booking", "/api/mobile"
+];
+
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
@@ -15,9 +20,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next(nextConfig);
   }
 
-  if (pathname === "/" ) {
-    return NextResponse.next(nextConfig);
-  }
+  if (pathname === "/") return NextResponse.next(nextConfig);
 
   if (pathname.startsWith("/api/auth") || pathname === "/api/mobile/login") {
     return NextResponse.next(nextConfig);
@@ -30,46 +33,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const mobileRoutes = [
-    "/api/partner", "/api/driver", "/api/user", "/api/search",
-    "/api/place-details", "/api/geocode", "/api/directions",
-    "/api/vehicles", "/api/booking", "/api/mobile"
-  ];
-
   const isMobileRoute = mobileRoutes.some(r => pathname.startsWith(r));
-
   if (isMobileRoute) {
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
-      // Laisser passer — la route elle-même vérifie le JWT via getEmailFromRequest
       return NextResponse.next(nextConfig);
-    }
-  }
-
-  const session = await auth();
-
-  if (pathname.startsWith("/api")) {
-    if (!session?.user) {
-      return Response.json({ message: "non autorisé" }, { status: 401 });
-    }
-  }
-
-  if (!session) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  const role = session.user?.role;
-
-  if (pathname.startsWith("/admin") && role !== "admin") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  if (pathname.startsWith("/partner")) {
-    if (pathname.startsWith("/partner/onboarding") || pathname.startsWith("/partner/bookings")) {
-      return NextResponse.next(nextConfig);
-    }
-    if (role !== "partner") {
-      return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
