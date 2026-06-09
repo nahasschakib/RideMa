@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./src/auth";
 
-const PUBLIC_ROUTES = ["/"];
-
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const requestHeaders = new Headers(req.headers);
@@ -17,7 +15,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next(nextConfig);
   }
 
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  if (pathname === "/" ) {
     return NextResponse.next(nextConfig);
   }
 
@@ -32,29 +30,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (
-    pathname.startsWith("/api/partner") ||
-    pathname.startsWith("/api/driver") ||
-    pathname.startsWith("/api/user") ||
-    pathname.startsWith("/api/search") ||
-    pathname.startsWith("/api/place-details") ||
-    pathname.startsWith("/api/geocode") ||
-    pathname.startsWith("/api/directions") ||
-    pathname.startsWith("/api/vehicles") ||
-    pathname.startsWith("/api/booking") ||
-    pathname.startsWith("/api/mobile")
-  ) {
+  const mobileRoutes = [
+    "/api/partner", "/api/driver", "/api/user", "/api/search",
+    "/api/place-details", "/api/geocode", "/api/directions",
+    "/api/vehicles", "/api/booking", "/api/mobile"
+  ];
+
+  const isMobileRoute = mobileRoutes.some(r => pathname.startsWith(r));
+
+  if (isMobileRoute) {
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      try {
-        const { jwtVerify } = await import("jose");
-        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!);
-        await jwtVerify(token, secret);
-        return NextResponse.next(nextConfig);
-      } catch {
-        // token invalide, continue
-      }
+      // Laisser passer — la route elle-même vérifie le JWT via getEmailFromRequest
+      return NextResponse.next(nextConfig);
     }
   }
 
