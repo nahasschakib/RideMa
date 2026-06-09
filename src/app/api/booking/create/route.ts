@@ -98,13 +98,21 @@ export async function POST(req: NextRequest) {
     });
 
     const socketUrl = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
-
-    // Notifier le conducteur
+    // Notifier le conducteur via socket
     await axios.post(socketUrl, {
       userId: driverId,
       event: "new-booking",
       data: { bookingId: booking._id, pickUpAddress, dropAddress, fare },
     }).catch(() => console.warn("[socket] Driver notification failed"));
+
+    // Notifier le conducteur via push notification
+    const { sendPushNotification } = await import("@/lib/push-notifications");
+    await sendPushNotification(
+      driverId,
+      "🚗 Nouvelle course !",
+      `${pickUpAddress} → ${dropAddress} — ${fare} MAD`,
+      { bookingId: booking._id.toString() }
+    );
 
     // Si cash : notifier le client immédiatement que c'est confirmé
     if (isCash) {
