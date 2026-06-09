@@ -7,6 +7,7 @@ export interface IUserDocument extends IUser {
   password?: string;
   otp?: string;
   otpExpiredAt?: Date;
+  expoPushToken:string;
 }
 
 const userSchema = new mongoose.Schema<IUserDocument>(
@@ -39,6 +40,9 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       default: 0,
     },
     mobileNumber: {
+      type: String,
+    },
+      expoPushToken: {
       type: String,
     },
     partnerStatus:{
