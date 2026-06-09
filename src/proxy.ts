@@ -35,7 +35,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = await auth();
+ 
     if (
   pathname.startsWith("/api/partner") ||
   pathname.startsWith("/api/driver") ||
@@ -61,7 +61,8 @@ export async function proxy(req: NextRequest) {
       }
     }
   }
-
+   const session = await auth();
+   
   if (pathname.startsWith("/api")) {
     if (!session || !session?.user) {
       return Response.json(
