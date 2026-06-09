@@ -1,7 +1,8 @@
-import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
+import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
+import { getEmailFromRequest } from "@/lib/mobile-auth";
 
 async function emitSocket(userId: string, event: string, data: object) {
   const url = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
@@ -11,25 +12,28 @@ async function emitSocket(userId: string, event: string, data: object) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, event, data }),
     });
-  } catch {
-    // socket server indisponible — non bloquant
-  }
+  } catch {}
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const id = (await context.params).id;
     await dbConnect();
 
-    const session = await auth();
-    if (!session?.user?.id) {
+    const email = await getEmailFromRequest(req);
+    if (!email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const booking = await Booking.findOne({ _id: id, driver: session.user.id });
+    const driver = await User.findOne({ email });
+    if (!driver) {
+      return NextResponse.json({ message: "Driver not found" }, { status: 404 });
+    }
+
+    const booking = await Booking.findOne({ _id: id, driver: driver._id });
     if (!booking || booking.bookingStatus !== "confirmed") {
       return NextResponse.json(
         { message: "Réservation introuvable ou non confirmée" },
@@ -40,9 +44,7 @@ export async function POST(
     booking.bookingStatus = "started";
     await booking.save();
 
-    await emitSocket(booking.user.toString(), "booking:started", {
-      bookingId: id,
-    });
+    await emitSocket(booking.user.toString(), "booking:started", { bookingId: id });
 
     return NextResponse.json({ success: true });
   } catch (error) {

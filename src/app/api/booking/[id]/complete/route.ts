@@ -1,10 +1,10 @@
-import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import Wallet from "@/models/wallet.model";
 import { NextRequest, NextResponse } from "next/server";
+import { getEmailFromRequest } from "@/lib/mobile-auth";
 
 async function emitSocket(userId: string, event: string, data: object) {
   const url = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;
@@ -14,9 +14,7 @@ async function emitSocket(userId: string, event: string, data: object) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, event, data }),
     });
-  } catch {
-    // socket server indisponible — non bloquant
-  }
+  } catch {}
 }
 
 export async function POST(
@@ -27,12 +25,17 @@ export async function POST(
     const id = (await context.params).id;
     await dbConnect();
 
-    const session = await auth();
-    if (!session?.user?.id) {
+    const email = await getEmailFromRequest(req);
+    if (!email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const booking = await Booking.findOne({ _id: id, driver: session.user.id });
+    const driver = await User.findOne({ email });
+    if (!driver) {
+      return NextResponse.json({ message: "Driver not found" }, { status: 404 });
+    }
+
+    const booking = await Booking.findOne({ _id: id, driver: driver._id });
     if (!booking || booking.bookingStatus !== "started") {
       return NextResponse.json(
         { message: "Réservation introuvable ou non démarrée" },
@@ -50,11 +53,10 @@ export async function POST(
       booking.adminCommission = commission;
       booking.partnerAmount = partnerAmount;
 
-      const driverId = booking.driver.toString();
+      const driverId = driver._id.toString();
 
-      // Débit commission du wallet prépayé
-      let wallet = await Wallet.findOneAndUpdate(
-        { owner: booking.driver, ownerType: "driver" },
+      const wallet = await Wallet.findOneAndUpdate(
+        { owner: driver._id, ownerType: "driver" },
         {
           $inc: { balance: -commission },
           $push: {
@@ -70,13 +72,11 @@ export async function POST(
         { upsert: true, new: true }
       );
 
-      // Si wallet épuisé → puiser dans la caution
       if (wallet.balance < 0) {
         const deficit = Math.abs(wallet.balance);
         const newDepositAmount = Math.max(0, (wallet.deposit?.amount ?? 0) - deficit);
         wallet.balance = 0;
         wallet.deposit.amount = newDepositAmount;
-
         if (newDepositAmount < 100) {
           wallet.isActive = false;
           await wallet.save();
@@ -94,7 +94,6 @@ export async function POST(
         });
       }
 
-      // Créditer wallet admin
       await Wallet.findOneAndUpdate(
         { ownerType: "admin" },
         {
@@ -116,13 +115,11 @@ export async function POST(
 
     await booking.save();
 
-    await emitSocket(booking.user.toString(), "booking:completed", {
-      bookingId: id,
-    });
+    await emitSocket(booking.user.toString(), "booking:completed", { bookingId: id });
 
-    await User.findByIdAndUpdate(booking.driver, { isOnline: true });
+    await User.findByIdAndUpdate(driver._id, { isOnline: true });
     await Vehicle.findOneAndUpdate(
-      { owner: booking.driver, status: "approved" },
+      { owner: driver._id, status: "approved" },
       { isAvailable: true }
     );
 
