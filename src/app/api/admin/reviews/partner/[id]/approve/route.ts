@@ -61,7 +61,6 @@ return Response.json(
     );
    
     } catch (error) {
-      console.log(error)
       return Response.json({
         message:`Partner approved error ${error}`
       },{status:500})

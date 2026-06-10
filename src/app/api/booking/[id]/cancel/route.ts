@@ -10,7 +10,6 @@ export async function POST(
         const id = (await context.params).id
         await dbConnect()
         const booking = await Booking.findById(id)
-        console.log("booking status:", booking?.bookingStatus)
 
         const cancellable = ["requested","awaiting_payment","confirmed"]
         if(!booking || !cancellable.includes(booking.bookingStatus)){

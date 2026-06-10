@@ -32,15 +32,10 @@ export async function GET(
     const documents = await PartnerDocs.findOne({ owner: partnerId });
     const bank = await PartnerBank.findOne({ owner: partnerId });
 
-    console.log("partnerId:", partnerId);
-    console.log("vehicle:", vehicle);
-    console.log("documents:", documents);
-    console.log("bank:", bank);
 
     return Response.json({ partner, vehicle, documents, bank }, { status: 200 });
 
   } catch (error) {
-    console.log(error);
     return Response.json(
       { message: `Erreur serveur: ${error}` },
       { status: 500 }

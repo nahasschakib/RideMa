@@ -5,7 +5,6 @@ import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req:NextRequest){
-    console.log("pending-requests-count called")
     try {
         await dbConnect()
         const session = await auth()

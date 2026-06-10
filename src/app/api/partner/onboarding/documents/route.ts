@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
     const vehicleRegistrationFile = formData.get("vehicleRegistration");
 
     // 🔍 DEBUG
-    console.log("FILES:", {
       identityFile,
       drivingLicenseFile,
       vehicleRegistrationFile,

@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
         partnerStatus:"pending",
         partnerOnBoardingSteps:{$gte:3}
     })
-    console.log(pendingPartnerUsers)
     const partnerIds=pendingPartnerUsers.map((p)=>p._id)
     const partnerVehicles= await Vehicle.find({
         owner:{$in:partnerIds}

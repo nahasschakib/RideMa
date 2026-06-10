@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const destLat = searchParams.get("destLat");
   const destLng = searchParams.get("destLng");
 
-  console.log("Directions params:", { originLat, originLng, destLat, destLng });
 
   if (!originLat || !originLng || !destLat || !destLng) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
@@ -15,15 +14,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    console.log("API Key exists:", !!apiKey);
 
     const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${apiKey}&language=fr`;
     
     const res = await fetch(url);
     const data = await res.json();
 
-    console.log("Google response status:", data.status);
-    console.log("Google response:", JSON.stringify(data).slice(0, 200));
 
     if (data.status !== "OK") {
       throw new Error(`Directions API error: ${data.status}`);
