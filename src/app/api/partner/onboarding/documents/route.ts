@@ -39,13 +39,7 @@ export async function POST(req: NextRequest) {
     const drivingLicenseFile = formData.get("drivingLicense");
     const vehicleRegistrationFile = formData.get("vehicleRegistration");
 
-    // 🔍 DEBUG
-      identityFile,
-      drivingLicenseFile,
-      vehicleRegistrationFile,
-    });
-
-    // ✅ VALIDATION ROBUSTE
+     
     if (
       !(identityFile instanceof Blob) ||
       !(drivingLicenseFile instanceof Blob) ||
