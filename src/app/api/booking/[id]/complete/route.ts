@@ -117,11 +117,12 @@ export async function POST(
 
     await emitSocket(booking.user.toString(), "booking:completed", { bookingId: id });
 
-    await User.findByIdAndUpdate(driver._id, { isOnline: true });
+   const updatedDriver = await User.findById(driver._id);
+    const driverIsOnline = updatedDriver?.isOnline ?? false;
     await Vehicle.findOneAndUpdate(
-      { owner: driver._id, status: "approved" },
-      { isAvailable: true }
-    );
+   { owner: driver._id, status: "approved" },
+   { isAvailable: driverIsOnline }
+      );
 
     return NextResponse.json({ success: true });
   } catch (error) {
