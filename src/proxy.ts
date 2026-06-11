@@ -34,19 +34,19 @@ export async function proxy(req: NextRequest) {
   ) {
     return NextResponse.next();
   }
-
  
-    if (
-  pathname.startsWith("/api/partner") ||
-  pathname.startsWith("/api/driver") ||
-  pathname.startsWith("/api/user") ||
-  pathname.startsWith("/api/search") ||
-  pathname.startsWith("/api/place-details") ||
-  pathname.startsWith("/api/geocode") ||
-  pathname.startsWith("/api/directions") ||
-  pathname.startsWith("/api/vehicles") ||
-  pathname.startsWith("/api/booking")
-) {
+   if (
+    pathname.startsWith("/api/partner") ||
+    pathname.startsWith("/api/driver") ||
+    pathname.startsWith("/api/user") ||
+    pathname.startsWith("/api/mobile") ||
+    pathname.startsWith("/api/search") ||
+    pathname.startsWith("/api/place-details") ||
+    pathname.startsWith("/api/geocode") ||
+    pathname.startsWith("/api/directions") ||
+    pathname.startsWith("/api/vehicles") ||
+    pathname.startsWith("/api/booking")
+  ){
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
