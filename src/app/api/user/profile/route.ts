@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const email = await getEmailFromRequest(req);
   if (!email) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   await dbConnect();
-  const user = await User.findOne({ email }).select("name email mobileNumber isEmailVerified createdAt averageRating");
+  const user = await User.findOne({ email }).select("name email mobileNumber isEmailVerified createdAt averageRating isOnline");
   if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
   return NextResponse.json(user);
 }
