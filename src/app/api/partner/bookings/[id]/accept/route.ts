@@ -59,6 +59,13 @@ export async function POST(
       event: "accept_booking",
       data: booking.bookingStatus,
     });
+     const { sendPushNotification } = await import("@/lib/push-notifications");
+    await sendPushNotification(
+      booking.user.toString(),
+      "✅ Course acceptée !",
+      "Votre chauffeur est en route vers vous.",
+      { bookingId: booking._id.toString() }
+    );
 
     return NextResponse.json({ success: "true" }, { status: 200 });
   } catch (error) {

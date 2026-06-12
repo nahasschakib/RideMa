@@ -45,7 +45,13 @@ export async function POST(
     await booking.save();
 
     await emitSocket(booking.user.toString(), "booking:started", { bookingId: id });
-
+     const { sendPushNotification } = await import("@/lib/push-notifications");
+    await sendPushNotification(
+      booking.user.toString(),
+      "🛣️ Course démarrée !",
+      "Votre chauffeur a validé le départ. Bon trajet !",
+      { bookingId: id }
+    );
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

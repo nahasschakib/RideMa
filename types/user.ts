@@ -29,5 +29,6 @@ export interface IUser {
   createdAt: string;
   updatedAt: string;
   averageRating?: number;
+   totalRatings:number
 }
 

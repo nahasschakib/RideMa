@@ -117,6 +117,14 @@ export async function POST(
 
     await emitSocket(booking.user.toString(), "booking:completed", { bookingId: id });
 
+     const { sendPushNotification } = await import("@/lib/push-notifications");
+    await sendPushNotification(
+      booking.user.toString(),
+      "✅ Course terminée !",
+      `Merci d'avoir utilisé MaRide. Tarif : ${booking.fare} MAD`,
+      { bookingId: id }
+    );
+    
    const updatedDriver = await User.findById(driver._id);
     const driverIsOnline = updatedDriver?.isOnline ?? false;
     await Vehicle.findOneAndUpdate(

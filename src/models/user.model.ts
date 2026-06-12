@@ -8,6 +8,7 @@ export interface IUserDocument extends IUser {
   otp?: string;
   otpExpiredAt?: Date;
   expoPushToken:string;
+  
 }
 
 const userSchema = new mongoose.Schema<IUserDocument>(
@@ -86,6 +87,14 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       type: Boolean,
       default: false,
       index: true,
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true },
