@@ -45,6 +45,8 @@ export interface IBooking {
   adminCommission: number;
   partnerAmount: number;
 
+  cancellationReason?: string;
+
   pickUpOtp: string;
   pickUpOtpExpires: Date;
   dropOtp: string;
@@ -152,6 +154,10 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       comment: { type: String, default: "" },
       ratedAt: { type: Date, default: null },
     },
+    cancellationReason: {
+  type: String,
+  default: '',
+},
   },{ timestamps: true },
 );
 const Booking = mongoose.models.Booking || mongoose.model("Booking",bookingSchema)

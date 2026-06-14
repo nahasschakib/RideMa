@@ -18,8 +18,10 @@ export async function POST(
                 {status:400}
             )
         }
-        booking.bookingStatus="cancelled"
-        booking.paymentStatus="failed"
+       const body = await req.json().catch(() => ({}));
+            booking.bookingStatus = "cancelled";
+            booking.paymentStatus = "failed";
+            booking.cancellationReason = body.reason || '';
 
         await booking.save()
         return NextResponse.json(
