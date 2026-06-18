@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       bookingStatus: { $in: ["requested", "awaiting_payment", "confirmed", "started"] },
     })
       .sort({ createdAt: -1 })
-      .populate("driver", "name mobileNumber")
+      .populate("driver", "name mobileNumber location")
       .populate("vehicle", "type model number");
     return NextResponse.json(booking, { status: 200 });
   } catch (error) {
