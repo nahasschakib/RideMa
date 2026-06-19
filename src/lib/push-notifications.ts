@@ -18,7 +18,8 @@ export async function sendPushNotification(
       data: data ?? {},
     };
 
-    await fetch("https://exp.host/--/api/v2/push/send", {
+    console.log('[push] Sending to:', user.expoPushToken, 'title:', title);
+    const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -27,6 +28,8 @@ export async function sendPushNotification(
       },
       body: JSON.stringify(message),
     });
+    const pushData = await pushRes.json();
+    console.log('[push] Response:', JSON.stringify(pushData));
   } catch (error) {
     console.error("Push notification error:", error);
   }
