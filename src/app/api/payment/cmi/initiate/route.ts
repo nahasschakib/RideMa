@@ -24,13 +24,20 @@ export async function POST(req: NextRequest) {
     const { bookingId } = await req.json();
     const booking = await Booking.findOne({ _id: bookingId, user: session.user.id });
 
-    if (!booking || booking.bookingStatus !== "awaiting_payment") {
-      return NextResponse.json({ message: "Réservation introuvable ou statut invalide" }, { status: 400 });
-    }
+    if (!booking || !["awaiting_payment", "requested"].includes(booking.bookingStatus)) {
+  return NextResponse.json({ message: "Réservation introuvable ou statut invalide" }, { status: 400 });
+}
+    // MODE MOCK — à supprimer quand les vraies clés CMI sont disponibles
+if (!process.env.CMI_MERCHANT_ID || process.env.CMI_MERCHANT_ID === 'ton_merchant_id') {
+  return NextResponse.json({
+    gatewayUrl: 'https://ride-ma.vercel.app/user/payment/cmi-success',
+    params: { bookingId: bookingId.toString() },
+  });
+}
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-    const merchantId = process.env.CMI_MERCHANT_ID!;
-    const storeKey   = process.env.CMI_STORE_KEY!;
+   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ride-ma.vercel.app';
+const merchantId = process.env.CMI_MERCHANT_ID ?? 'MOCK_MERCHANT';
+const storeKey   = process.env.CMI_STORE_KEY ?? 'MOCK_KEY';
     const rnd        = Date.now().toString();
 
     const params: Record<string, string> = {
