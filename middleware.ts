@@ -46,7 +46,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/geocode") ||
     pathname.startsWith("/api/directions") ||
     pathname.startsWith("/api/vehicles") ||
-    pathname.startsWith("/api/booking")
+    pathname.startsWith("/api/booking") ||
+    pathname.startsWith("/api/payment")
   ){
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
