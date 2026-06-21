@@ -42,6 +42,11 @@ export interface IBooking {
   paymentMethod?: "cash" | "cmi" | "stripe";
 
   paymentDeadline:Date;
+
+  cmiOrderId?: string;
+  cmiTransactionId?: string;
+  cmiPaymentUrl?: string;
+
   adminCommission: number;
   partnerAmount: number;
 
@@ -129,6 +134,15 @@ const bookingSchema = new mongoose.Schema<IBooking>(
     paymentDeadline:{
       type:Date
     },
+    cmiOrderId: {
+       type: String 
+      },
+    cmiTransactionId: { 
+      type: String 
+    },
+    cmiPaymentUrl: { 
+      type: String 
+    }, 
     adminCommission:{
         type:Number,
         default:0
