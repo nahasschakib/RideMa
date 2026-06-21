@@ -31,7 +31,8 @@ export async function middleware(req: NextRequest) {
   // Callbacks externes sans session : webhook Stripe, callback CMI
   if (
     pathname === "/api/payment/stripe/webhook" ||
-    pathname === "/api/payment/cmi/callback"
+    pathname === "/api/payment/cmi/callback" ||
+    pathname === "/api/payment/cmi/mock-success"
   ) {
     return NextResponse.next();
   }
