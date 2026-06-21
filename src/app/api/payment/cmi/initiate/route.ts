@@ -16,9 +16,11 @@ function cmiHash(params: Record<string, string>, storeKey: string): string {
 }
 
 export async function POST(req: NextRequest) {
+   console.log('[cmi/initiate] called');
   try {
     await dbConnect();
    const email = await getEmailFromRequest(req)
+     console.log('[cmi/initiate] email:', email);
     if (!email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
