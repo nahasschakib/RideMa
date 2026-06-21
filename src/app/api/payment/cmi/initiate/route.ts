@@ -1,8 +1,10 @@
-import { auth } from "@/auth";
+import {getEmailFromRequest} from "@/lib/mobile-auth";
+
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import User from "@/models/user.model";
 
 function cmiHash(params: Record<string, string>, storeKey: string): string {
   // Tri alphabétique des clés, concaténation key=value| puis HMAC-SHA256 + Base64
@@ -16,13 +18,15 @@ function cmiHash(params: Record<string, string>, storeKey: string): string {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const session = await auth();
-    if (!session?.user?.id) {
+   const email = await getEmailFromRequest(req)
+    if (!email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    const user = await User.findOne({email})
+
     const { bookingId } = await req.json();
-    const booking = await Booking.findOne({ _id: bookingId, user: session.user.id });
+    const booking = await Booking.findOne({ _id: bookingId, user:user.id });
 
     if (!booking || !["awaiting_payment", "requested"].includes(booking.bookingStatus)) {
   return NextResponse.json({ message: "Réservation introuvable ou statut invalide" }, { status: 400 });
