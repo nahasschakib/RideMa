@@ -35,10 +35,14 @@ export async function POST(req: NextRequest) {
 }
     // MODE MOCK — à supprimer quand les vraies clés CMI sont disponibles
 if (!process.env.CMI_MERCHANT_ID || process.env.CMI_MERCHANT_ID === 'ton_merchant_id') {
-  return NextResponse.json({
-    gatewayUrl: 'https://ride-ma.vercel.app/api/payment/cmi/mock-success',
-    params: { bookingId: bookingId.toString(), oid: bookingId.toString() },
+  // Mock : confirmer directement le booking
+  await Booking.findByIdAndUpdate(bookingId, {
+    bookingStatus: "confirmed",
+    paymentStatus: "paid",
+    adminCommission: Math.round(booking.fare * 0.1 * 100) / 100,
+    partnerAmount: Math.round(booking.fare * 0.9 * 100) / 100,
   });
+  return NextResponse.json({ mock: true, bookingId });
 }
 
    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ride-ma.vercel.app';
