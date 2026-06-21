@@ -5,6 +5,5 @@ export async function POST(req: NextRequest) {
   const params = Object.fromEntries(new URLSearchParams(body));
   const bookingId = params.bookingId || params.oid;
   
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ride-ma.vercel.app';
-  return NextResponse.redirect(`${baseUrl}/user/payment/cmi-success?bookingId=${bookingId}`);
+  return NextResponse.redirect(`https://ride-ma.vercel.app/user/payment/cmi-success?bookingId=${bookingId}`);
 }
