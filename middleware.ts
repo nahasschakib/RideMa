@@ -24,7 +24,12 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next(nextConfig);
   }
- if (pathname.startsWith("/api/auth") || pathname === "/api/mobile/login") {
+ if (pathname.startsWith("/api/auth") ||
+      pathname === "/api/mobile/login" ||
+    pathname === "/api/mobile/register" ||
+    pathname === "/api/mobile/verify-otp"
+
+) {
     return NextResponse.next(nextConfig);
   }
 
@@ -48,7 +53,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/directions") ||
     pathname.startsWith("/api/vehicles") ||
     pathname.startsWith("/api/booking") ||
-    pathname.startsWith("/api/payment")
+    pathname.startsWith("/api/payment") 
+   
   ){
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
