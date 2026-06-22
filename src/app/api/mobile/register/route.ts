@@ -24,15 +24,15 @@ export async function POST(req: NextRequest) {
 
     // Stocker OTP temporairement dans un champ pending
     await User.create({
-  name,
-  email: email.toLowerCase(),
-  password,
-  mobileNumber,
-  role: "user",
-  otp,
-  otpExpiredAt: otpExpires,
-  isEmailVerified: false,
-});
+                name,
+                email: email.toLowerCase(),
+                password,
+                mobileNumber,
+                role: "user",
+                otp,
+                otpExpiredAt: otpExpires,
+                isEmailVerified: false,
+                });
 
     // Envoyer OTP par email
     await sendMail(
