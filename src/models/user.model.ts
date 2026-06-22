@@ -80,8 +80,10 @@ const userSchema = new mongoose.Schema<IUserDocument>(
         type: String,
         enum: ["Point"],
       },
-      coordinates: [Number],
-              
+      coordinates: {
+        type: [Number],
+        default: undefined,
+      },
     },
     isOnline: {
       type: Boolean,
