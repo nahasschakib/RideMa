@@ -23,20 +23,16 @@ export async function POST(req: NextRequest) {
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Stocker OTP temporairement dans un champ pending
-    await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
-      {
-        name,
-        email: email.toLowerCase(),
-        password,
-        mobileNumber,
-        role: "user",
-        otp: otp,
-        otpExpiredAt: otpExpires,
-        isEmailVerified: false,
-      },
-      { upsert: true, new: true }
-    );
+    await User.create({
+  name,
+  email: email.toLowerCase(),
+  password,
+  mobileNumber,
+  role: "user",
+  otp,
+  otpExpiredAt: otpExpires,
+  isEmailVerified: false,
+});
 
     // Envoyer OTP par email
     await sendMail(
