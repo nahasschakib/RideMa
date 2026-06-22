@@ -17,7 +17,7 @@ export const sendMail = async (
 ) => {
   try {
     const data = await transporter.sendMail({
-      from: `MaRide <${process.env.BREVO_USER}>`,
+     from: `MaRide <cnahass@gmail.com>`,
       to,
       subject,
       html,
