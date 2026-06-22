@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
+    "@getbrevo/brevo": "^5.0.4",
     "@mapbox/polyline": "^1.2.1",
     "@reduxjs/toolkit": "^2.11.2",
     "@types/leaflet": "^1.9.21",
