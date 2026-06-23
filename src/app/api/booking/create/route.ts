@@ -29,10 +29,10 @@ export async function POST(req: NextRequest) {
         !dropLocation?.coordinates?.length || !fare || !mobileNumber) {
       return NextResponse.json({ message: "Missing required booking details" }, { status: 400 });
     }
-    console.log('[booking/create] driverId:', driverId);
+    console.log('[booking/create] driverId:', driverId)
     const driver = await User.findById(driverId);
-   console.log('[booking/create] driver found:', !!driver);
-    if (!driver) {
+    console.log('[booking/create] driver found:',!!driver)
+       if (!driver) {
       return NextResponse.json({ message: "Driver not found" }, { status: 404 });
     }
 
