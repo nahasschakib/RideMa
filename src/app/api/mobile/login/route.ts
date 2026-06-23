@@ -40,12 +40,13 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-
+    const roles = user.roles?.length ? user.roles :[user.role]
     const token = jwt.sign(
       {
         id: user._id.toString(),
         email: user.email,
         role: user.role,
+        roles,
         name: user.name,
       },
       secret,
@@ -56,9 +57,11 @@ export async function POST(req: NextRequest) {
       token,
       user: {
         id: user._id.toString(),
+        _id:user._id.toString(),
         email: user.email,
         name: user.name,
         role: user.role,
+        roles
       },
     });
   } catch (err) {

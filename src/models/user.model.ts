@@ -8,6 +8,7 @@ export interface IUserDocument extends IUser {
   otp?: string;
   otpExpiredAt?: Date;
   expoPushToken:string;
+  roles?:string[];
   
 }
 
@@ -29,6 +30,11 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       type: String,
       enum: ["user", "partner", "admin"],
       default: "user",
+    },
+    roles: {
+      type: [String],
+      enum: ["user", "partner", "admin"],
+      default: ["user"],
     },
     isEmailVerified: {
       type: Boolean,
