@@ -27,3 +27,26 @@ export async function uploadToCloudinary(file: Blob): Promise<string> {
     throw error;
   }
 }
+export async function uploadProfilePhoto(
+  base64Data: string,
+  partnerId: string
+): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(
+      base64Data,
+      {
+        public_id: `partner_${partnerId}`,
+        folder: 'maride/profile-photos',
+        overwrite: true,
+        transformation: [
+          { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+          { quality: 'auto', fetch_format: 'auto' },
+        ],
+      },
+      (error, result) => {
+        if (error || !result) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+  });
+}

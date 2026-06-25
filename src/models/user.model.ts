@@ -9,6 +9,7 @@ export interface IUserDocument extends IUser {
   otpExpiredAt?: Date;
   expoPushToken:string;
   roles?:string[];
+  photoUrl:string;
   
 }
 
@@ -56,6 +57,10 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       type:String,
      enum:["pending","approved","rejected"],
      default:"pending"
+    },
+    photoUrl: {
+    type: String,
+    default: null,
     },
     rejectionReason:{
       type:String
