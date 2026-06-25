@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       dateFilter.setMonth(now.getMonth() - 1);
     }
 
-    const query: any = {
+    const query: Record<string, unknown> =  {
       driver: driver._id,
       bookingStatus: 'completed',
       paymentStatus: { $in: ['paid', 'cash'] },
