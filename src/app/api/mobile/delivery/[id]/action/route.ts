@@ -49,15 +49,41 @@ export async function POST(
         break;
 
       case 'deliver':
-        if (String(delivery.deliverer) !== String(user._id)) {
-          return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
-        }
-        if (code !== delivery.deliveryCode) {
-          return NextResponse.json({ error: 'Code de livraison incorrect' }, { status: 400 });
-        }
-        delivery.status = 'delivered';
-        delivery.paymentStatus = 'paid';
-        break;
+            if (String(delivery.deliverer) !== String(user._id)) {
+                return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+            }
+            if (code !== delivery.deliveryCode) {
+                return NextResponse.json({ error: 'Code de livraison incorrect' }, { status: 400 });
+            }
+            delivery.status = 'delivered';
+            delivery.paymentStatus = 'paid';
+
+            // Débit wallet automatique si paiement par wallet
+            if (delivery.paymentMethod === 'wallet') {
+                const Wallet = (await import('@/models/wallet.model')).default;
+                const clientWallet = await Wallet.findOne({
+                owner: delivery.client,
+                ownerType: 'client',
+                });
+                if (!clientWallet) {
+                return NextResponse.json({ error: 'Wallet client introuvable' }, { status: 404 });
+                }
+                if (clientWallet.balance < delivery.totalPrice) {
+                return NextResponse.json({
+                    error: `Solde insuffisant — ${clientWallet.balance} MAD disponible, ${delivery.totalPrice} MAD requis`,
+                }, { status: 400 });
+                }
+                clientWallet.balance -= delivery.totalPrice;
+                clientWallet.transactions.unshift({
+                type: 'debit',
+                amount: delivery.totalPrice,
+                reason: 'payment',
+                description: `Livraison colis — ${delivery.pickUpAddress} → ${delivery.dropAddress}`,
+                bookingId: delivery._id,
+                });
+                await clientWallet.save();
+            }
+            break;
 
       case 'cancel':
         delivery.status = 'cancelled';
