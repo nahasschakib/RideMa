@@ -5,8 +5,11 @@ export type TransactionReason =
   | "trip_earning"
   | "commission"
   | "manual_deposit"
-  | "commission_debit";
-export type WalletOwnerType = "driver" | "admin";
+  | "commission_debit"
+  | "topup"
+  | "payment"
+  | "refund";
+export type WalletOwnerType = "driver" | "admin" | "client";
 export type DepositStatus = "none" | "pending" | "active" | "refunded";
 
 export interface ITransaction {
@@ -43,7 +46,7 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
     amount: { type: Number, required: true },
     reason: {
       type: String,
-      enum: ["trip_earning", "commission", "manual_deposit", "commission_debit"],
+      enum: ["trip_earning", "commission", "manual_deposit", "commission_debit", "topup", "payment", "refund"],
       required: true,
     },
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
@@ -55,7 +58,7 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
 const walletSchema = new mongoose.Schema<IWallet>(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ownerType: { type: String, enum: ["driver", "admin"], required: true },
+    ownerType: { type: String, enum: ["driver", "admin", "client"], required: true },
     balance: { type: Number, default: 0 },
     transactions: [transactionSchema],
     isActive: { type: Boolean, default: false },
