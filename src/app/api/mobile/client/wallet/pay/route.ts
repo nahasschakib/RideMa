@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       message: 'Paiement effectué avec succès',
     });
   } catch (error) {
+    console.log(error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
