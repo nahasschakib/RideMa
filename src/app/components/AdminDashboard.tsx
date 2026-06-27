@@ -60,6 +60,21 @@ function AdminDashboard() {
               <User size={14}/>
               Admin Dashboard
           </div>
+         
+            <div className="flex items-center gap-2">
+              <a href="/admin/deliveries" className="text-xs px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100">
+                📦 Livraisons
+              </a>
+              <a href="/admin/promo" className="text-xs px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100">
+                🏷️ Promos
+              </a>
+              <a href="/admin/wallets" className="text-xs px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100">
+                💳 Wallets
+              </a>
+              <a href="/admin/sos" className="text-xs px-3 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100">
+                🚨 SOS
+              </a>
+            </div>
         </div>
       </div>
 <main className="max-w-7xl mx-auto px-6 py-12 space-y-18">

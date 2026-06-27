@@ -3,6 +3,7 @@ import { getEmailFromRequest } from '@/lib/mobile-auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/user.model';
 import { sendPushNotification } from '@/lib/push-notifications';
+import SOSAlert from '@/models/sosAlert.model';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
     if (!email) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
     await dbConnect();
+    
     const user = await User.findOne({ email });
     if (!user) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
@@ -26,6 +28,15 @@ export async function POST(req: NextRequest) {
         sendPushNotification(String(admin._id), title, body, { bookingId, type: 'sos' })
       )
     );
+    await SOSAlert.create({
+            userId: user._id,
+            userName: user.name,
+            userPhone: user.mobileNumber ?? '',
+            role,
+            latitude,
+            longitude,
+            bookingId: bookingId ?? null,
+            });
 
     return NextResponse.json({ success: true });
   } catch (error) {
