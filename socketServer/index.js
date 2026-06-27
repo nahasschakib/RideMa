@@ -100,6 +100,16 @@ socket.on("chat-message",(data)=>{
   io.to(`ride-${data.bookingId}`).emit("chat-message",data)
 })
 
+socket.on("join-support", (userId) => {
+  socket.join(`support-${userId}`);
+  console.log(`[support] User ${userId} joined support room`);
+});
+
+socket.on("support-message", (data) => {
+  // Broadcast dans la room support de l'utilisateur
+  io.to(`support-${data.userId}`).emit("support-message", data);
+  console.log(`[support] Message from ${data.sender} to user ${data.userId}`);
+});
 
 socket.on("disconnect", async () => {
   if (!socket.userId) return;
