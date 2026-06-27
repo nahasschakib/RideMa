@@ -14,24 +14,31 @@ export async function GET(req: NextRequest) {
     const user = await User.findOne({ email });
     if (!user) return NextResponse.json({ isEmployee: false });
 
-    const employee = await CompanyEmployee.findOne({ user: user._id, isActive: true });
-    if (!employee) return NextResponse.json({ isEmployee: false });
+    const employees = await CompanyEmployee.find({ user: user._id, isActive: true });
+    if (!employees.length) return NextResponse.json({ isEmployee: false });
 
-    const company = await Company.findById(employee.company);
-    if (!company || company.status !== 'active') return NextResponse.json({ isEmployee: false });
+    const companiesRaw = await Promise.all(
+      employees.map(async (emp) => {
+        const company = await Company.findById(emp.company);
+        if (!company || company.status !== 'active') return null;
+        const remaining = emp.monthlyLimit
+          ? emp.monthlyLimit - emp.currentMonthSpend
+          : null;
+        return {
+          companyId: company._id,
+          companyName: company.name,
+          companyBalance: company.wallet.balance,
+          monthlyLimit: emp.monthlyLimit ?? null,
+          currentSpend: emp.currentMonthSpend,
+          remaining,
+        };
+      })
+    );
 
-    const remaining = employee.monthlyLimit
-      ? employee.monthlyLimit - employee.currentMonthSpend
-      : null;
+    const activeCompanies = companiesRaw.filter(Boolean);
+    if (!activeCompanies.length) return NextResponse.json({ isEmployee: false });
 
-    return NextResponse.json({
-      isEmployee: true,
-      companyName: company.name,
-      companyBalance: company.wallet.balance,
-      monthlyLimit: employee.monthlyLimit ?? null,
-      currentSpend: employee.currentMonthSpend,
-      remaining,
-    });
+    return NextResponse.json({ isEmployee: true, companies: activeCompanies });
   } catch (error) {
     return NextResponse.json({ isEmployee: false });
   }
