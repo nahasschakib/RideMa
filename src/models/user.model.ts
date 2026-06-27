@@ -29,12 +29,12 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     },
     role: {
       type: String,
-      enum: ["user", "partner", "admin"],
+      enum: ["user", "partner", "admin","business_admin"],
       default: "user",
     },
     roles: {
       type: [String],
-      enum: ["user", "partner", "admin"],
+      enum: ["user", "partner", "admin","business_admin"],
       default: ["user"],
     },
     isEmailVerified: {

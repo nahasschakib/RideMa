@@ -35,13 +35,7 @@ export async function POST(req: NextRequest) {
       status: 'pending',
     });
 
-    // Ajouter le rôle business_admin à l'utilisateur
-    if (!user.roles?.includes('business_admin')) {
-      user.roles = [...(user.roles ?? []), 'business_admin'];
-      await user.save();
-    }
-
-    return NextResponse.json(company, { status: 201 });
+       return NextResponse.json(company, { status: 201 });
   } catch (error) {
     console.error('Business register error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
