@@ -5,6 +5,7 @@ import User from '@/models/user.model';
 import Company from '@/models/company.model';
 import CompanyEmployee from '@/models/companyEmployee.model';
 import Booking from '@/models/booking.model';
+import Wallet from '@/models/wallet.model';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,10 +16,13 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email });
     if (!user) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
-    const { bookingId } = await req.json();
+    const { bookingId, companyId } = await req.json();
 
     // Vérifier que l'employé est lié à une entreprise active
-    const employee = await CompanyEmployee.findOne({ user: user._id, isActive: true });
+    const query = companyId
+      ? { user: user._id, company: companyId, isActive: true }
+      : { user: user._id, isActive: true };
+    const employee = await CompanyEmployee.findOne(query);
     if (!employee) {
       return NextResponse.json({ error: 'Vous n\'êtes pas lié à une entreprise' }, { status: 400 });
     }
@@ -35,6 +39,8 @@ export async function POST(req: NextRequest) {
     }
 
     const fare = booking.fare;
+    const partnerAmount = booking.partnerAmount;
+    const adminCommission = booking.adminCommission;
 
     // Vérifier plafond employé
     if (employee.monthlyLimit) {
@@ -53,7 +59,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Débiter wallet entreprise
+    // 1. Débiter wallet entreprise
     company.wallet.balance -= fare;
     company.wallet.transactions.unshift({
       type: 'debit',
@@ -64,11 +70,39 @@ export async function POST(req: NextRequest) {
     company.currentMonthSpend += fare;
     await company.save();
 
-    // Mettre à jour dépenses employé
+    // 2. Mettre à jour dépenses employé
     employee.currentMonthSpend += fare;
     await employee.save();
 
-    // Marquer booking comme payé
+    // 3. Créditer wallet chauffeur (90%)
+    const driverWallet = await Wallet.findOne({ owner: booking.driver, ownerType: 'driver' });
+    if (driverWallet) {
+      driverWallet.balance += partnerAmount;
+      driverWallet.transactions.unshift({
+        type: 'credit',
+        amount: partnerAmount,
+        reason: 'trip_earning',
+        description: `Course Business (${company.name}) — ${booking.pickUpAddress} → ${booking.dropAddress}`,
+        bookingId: booking._id,
+      });
+      await driverWallet.save();
+    }
+
+    // 4. Créditer wallet admin (10%)
+    const adminWallet = await Wallet.findOne({ ownerType: 'admin' });
+    if (adminWallet) {
+      adminWallet.balance += adminCommission;
+      adminWallet.transactions.unshift({
+        type: 'credit',
+        amount: adminCommission,
+        reason: 'commission',
+        description: `Commission Business (${company.name}) — ${user.name}`,
+        bookingId: booking._id,
+      });
+      await adminWallet.save();
+    }
+
+    // 5. Marquer booking comme payé
     booking.paymentStatus = 'paid';
     await booking.save();
 
@@ -77,6 +111,8 @@ export async function POST(req: NextRequest) {
       companyBalance: company.wallet.balance,
       employeeSpend: employee.currentMonthSpend,
       employeeLimit: employee.monthlyLimit,
+      partnerAmount,
+      adminCommission,
     });
   } catch (error) {
     console.error('Business pay error:', error);
