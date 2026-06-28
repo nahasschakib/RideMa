@@ -25,9 +25,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next(nextConfig);
   }
  if (pathname.startsWith("/api/auth") ||
-      pathname === "/api/mobile/login" ||
+    pathname === "/api/mobile/login" ||
     pathname === "/api/mobile/register" ||
-    pathname === "/api/mobile/verify-otp"
+    pathname === "/api/mobile/verify-otp" ||
+    pathname === "/api/mobile/cities/detect" ||
+    pathname === "/api/mobile/cities"
 
 ) {
     return NextResponse.next(nextConfig);
