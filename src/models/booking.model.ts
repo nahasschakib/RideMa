@@ -67,6 +67,8 @@ export interface IBooking {
   scheduledAt?: Date;
   isScheduled: boolean;
   scheduledStatus?: 'pending' | 'dispatching' | 'cancelled';
+
+  isWomenOnly?: boolean;
  }
 
 const bookingSchema = new mongoose.Schema<IBooking>(
@@ -187,6 +189,10 @@ const bookingSchema = new mongoose.Schema<IBooking>(
           type: String,
           enum: ['pending', 'dispatching', 'cancelled'],
         },
+        isWomenOnly: {
+            type: Boolean,
+            default: false,
+          },
           },{ timestamps: true },
         );
 const Booking = mongoose.models.Booking || mongoose.model("Booking",bookingSchema)

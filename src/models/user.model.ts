@@ -10,6 +10,7 @@ export interface IUserDocument extends IUser {
   expoPushToken:string;
   roles?:string[];
   photoUrl:string;
+  gender?: 'male' | 'female';
   
 }
 
@@ -61,6 +62,10 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     photoUrl: {
     type: String,
     default: null,
+    },
+    gender: {
+    type: String,
+    enum: ['male', 'female'],
     },
     rejectionReason:{
       type:String

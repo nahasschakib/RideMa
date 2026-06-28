@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const {
       driverId, vehicleId, pickUpAddress, dropAddress,
       pickUpLocation, dropLocation, fare, mobileNumber, paymentMethod,
+      isWomenOnly,
     } = await req.json();
 
     if (!driverId || !vehicleId || !pickUpLocation?.coordinates?.length ||
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       bookingStatus:      isCash ? "confirmed" : "requested",
       paymentMethod:      paymentMethod ?? "cash",
       paymentStatus:      isCash ? "cash" : "pending",
+      isWomenOnly: isWomenOnly ?? false,
     });
 
     const socketUrl = `${process.env.SOCKET_SERVER_URL ?? "http://localhost:8000"}/emit`;

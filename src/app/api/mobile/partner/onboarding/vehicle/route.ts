@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email });
     if (!user) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
-    const { type, number, vehicleModel } = await req.json();
+    const { type, number, vehicleModel , gender } = await req.json();
 
     if (!type || !vehicleModel || (type !== 'vélo' && !number)) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         model: vehicleModel,
       });
     }
-
+    if (gender) user.gender = gender;
     user.partnerOnBoardingSteps = Math.max(user.partnerOnBoardingSteps, 1);
     user.role = 'partner';
     user.partnerStatus = 'pending';
