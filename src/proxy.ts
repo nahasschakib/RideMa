@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
 
-
 const PUBLIC_ROUTES = ["/"];
-
-
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -12,6 +9,7 @@ export async function proxy(req: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
   const nextConfig = { request: { headers: requestHeaders } };
 
+  // Fichiers statiques
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -20,31 +18,27 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next(nextConfig);
   }
 
+  // Routes publiques
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next(nextConfig);
   }
- if (pathname.startsWith("/api/auth") || pathname === "/api/mobile/login") {
-    return NextResponse.next(nextConfig);
-  }
 
-  // Callbacks externes sans session : webhook Stripe, callback CMI
+  // Routes publiques API (sans auth)
   if (
-    pathname === "/api/payment/stripe/webhook" ||
-    pathname === "/api/payment/cmi/callback"
-  ) {
-    return NextResponse.next();
-  }
-  if (pathname.startsWith("/api/auth") || 
+    pathname.startsWith("/api/auth") ||
     pathname === "/api/mobile/login" ||
     pathname === "/api/mobile/register" ||
     pathname === "/api/mobile/verify-otp" ||
     pathname === "/api/mobile/cities/detect" ||
-    pathname === "/api/mobile/cities"
-) {
-  return NextResponse.next(nextConfig);
-}
- 
-   if (
+    pathname === "/api/mobile/cities" ||
+    pathname === "/api/payment/stripe/webhook" ||
+    pathname === "/api/payment/cmi/callback"
+  ) {
+    return NextResponse.next(nextConfig);
+  }
+
+  // Routes protégées par Bearer token
+  if (
     pathname.startsWith("/api/partner") ||
     pathname.startsWith("/api/driver") ||
     pathname.startsWith("/api/user") ||
@@ -54,9 +48,8 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/api/geocode") ||
     pathname.startsWith("/api/directions") ||
     pathname.startsWith("/api/vehicles") ||
-    pathname.startsWith("/api/booking") 
-    
-  ){
+    pathname.startsWith("/api/booking")
+  ) {
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
@@ -71,16 +64,12 @@ export async function proxy(req: NextRequest) {
       }
     }
   }
-   const session = await auth();
-   
+
+  const session = await auth();
+
   if (pathname.startsWith("/api")) {
     if (!session || !session?.user) {
-      return Response.json(
-        {
-          message: "non autorisé",
-        },
-        { status: 401 },
-      );
+      return Response.json({ message: "non autorisé" }, { status: 401 });
     }
   }
 
@@ -95,21 +84,22 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
+
   if (pathname.startsWith("/partner")) {
-    if(pathname.startsWith("/partner/onboarding")){
-        return NextResponse.next(nextConfig)
+    if (pathname.startsWith("/partner/onboarding")) {
+      return NextResponse.next(nextConfig);
     }
-    if(pathname.startsWith("/partner/bookings")){
-        return NextResponse.next(nextConfig)
+    if (pathname.startsWith("/partner/bookings")) {
+      return NextResponse.next(nextConfig);
     }
     if (role !== "partner") {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  return NextResponse.next(nextConfig)
+  return NextResponse.next(nextConfig);
 }
 
-export const config={
-    matcher:["/((?!_next/static|_next/image|favicon.ico).*)"]
-}
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
