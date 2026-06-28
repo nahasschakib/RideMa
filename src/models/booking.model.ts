@@ -63,7 +63,11 @@ export interface IBooking {
   };
   createdAt?: Date;
   updatedAt?: Date;
-}
+
+  scheduledAt?: Date;
+  isScheduled: boolean;
+  scheduledStatus?: 'pending' | 'dispatching' | 'cancelled';
+ }
 
 const bookingSchema = new mongoose.Schema<IBooking>(
   {
@@ -169,11 +173,22 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       ratedAt: { type: Date, default: null },
     },
     cancellationReason: {
-  type: String,
-  default: '',
-},
-  },{ timestamps: true },
-);
+      type: String,
+      default: '',
+            },
+            scheduledAt: {
+          type: Date,
+        },
+        isScheduled: {
+          type: Boolean,
+          default: false,
+        },
+        scheduledStatus: {
+          type: String,
+          enum: ['pending', 'dispatching', 'cancelled'],
+        },
+          },{ timestamps: true },
+        );
 const Booking = mongoose.models.Booking || mongoose.model("Booking",bookingSchema)
 
 export default Booking;
