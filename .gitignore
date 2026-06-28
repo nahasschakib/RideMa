@@ -43,3 +43,5 @@ next-env.d.ts
 
 # socket server dependencies
 socketServer/node_modules/
+
+.vercel
