@@ -34,6 +34,15 @@ export async function proxy(req: NextRequest) {
   ) {
     return NextResponse.next();
   }
+  if (pathname.startsWith("/api/auth") || 
+    pathname === "/api/mobile/login" ||
+    pathname === "/api/mobile/register" ||
+    pathname === "/api/mobile/verify-otp" ||
+    pathname === "/api/mobile/cities/detect" ||
+    pathname === "/api/mobile/cities"
+) {
+  return NextResponse.next(nextConfig);
+}
  
    if (
     pathname.startsWith("/api/partner") ||
@@ -45,7 +54,8 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/api/geocode") ||
     pathname.startsWith("/api/directions") ||
     pathname.startsWith("/api/vehicles") ||
-    pathname.startsWith("/api/booking")
+    pathname.startsWith("/api/booking") 
+    
   ){
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
