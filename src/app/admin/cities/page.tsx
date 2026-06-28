@@ -28,6 +28,13 @@ export default function CitiesPage() {
     baseFare: '', pricePerKM: '', waitingCharge: '', minimumFare: '', radiusKm: '',
   });
   const [saving, setSaving] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+    const [newCity, setNewCity] = useState({
+    name: '', nameAr: '', radiusKm: '20',
+    lat: '', lng: '',
+    baseFare: '', pricePerKM: '', waitingCharge: '', minimumFare: '',
+    });
+    const [adding, setAdding] = useState(false);
 
   useEffect(() => { fetchCities(); }, []);
 
@@ -50,6 +57,31 @@ export default function CitiesPage() {
     });
     setEditing(false);
   };
+  const handleAdd = async () => {
+  if (!newCity.name || !newCity.nameAr || !newCity.lat || !newCity.lng || !newCity.baseFare) {
+    alert('Remplissez tous les champs obligatoires');
+    return;
+  }
+  try {
+    setAdding(true);
+    await axios.post('/api/admin/cities', {
+      name: newCity.name,
+      nameAr: newCity.nameAr,
+      radiusKm: Number(newCity.radiusKm),
+      coordinates: { lat: Number(newCity.lat), lng: Number(newCity.lng) },
+      pricing: {
+        baseFare: Number(newCity.baseFare),
+        pricePerKM: Number(newCity.pricePerKM),
+        waitingCharge: Number(newCity.waitingCharge),
+        minimumFare: Number(newCity.minimumFare),
+      },
+    });
+    setShowAddForm(false);
+    setNewCity({ name: '', nameAr: '', radiusKm: '20', lat: '', lng: '', baseFare: '', pricePerKM: '', waitingCharge: '', minimumFare: '' });
+    fetchCities();
+  } catch (e) { console.error(e); }
+  finally { setAdding(false); }
+};
 
   const handleSave = async () => {
     if (!selected) return;
@@ -91,10 +123,56 @@ export default function CitiesPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">Gestion des villes</h1>
-          <p className="text-gray-500 text-sm">{cities.filter(c => c.isActive).length} ville(s) active(s) sur {cities.length}</p>
+        <div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-2xl font-black text-gray-900">Gestion des villes</h1>
+    <p className="text-gray-500 text-sm">{cities.filter(c => c.isActive).length} ville(s) active(s) sur {cities.length}</p>
+  </div>
+  <button
+    onClick={() => setShowAddForm(!showAddForm)}
+    className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-xl font-700 hover:bg-orange-600"
+  >
+    <Plus size={16} />
+    Ajouter une ville
+  </button>
+</div>
+
+{showAddForm && (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <h2 className="text-lg font-800 text-gray-900 mb-4">Nouvelle ville</h2>
+    <div className="grid grid-cols-2 gap-4">
+      {[
+        { label: 'Nom (FR) *', key: 'name', placeholder: 'ex: Béni Mellal' },
+        { label: 'Nom (AR) *', key: 'nameAr', placeholder: 'ex: بني ملال' },
+        { label: 'Latitude *', key: 'lat', placeholder: 'ex: 32.3373' },
+        { label: 'Longitude *', key: 'lng', placeholder: 'ex: -6.3498' },
+        { label: 'Rayon (km) *', key: 'radiusKm', placeholder: 'ex: 20' },
+        { label: 'Tarif de base (MAD) *', key: 'baseFare', placeholder: 'ex: 8' },
+        { label: 'Prix par km (MAD) *', key: 'pricePerKM', placeholder: 'ex: 3' },
+        { label: 'Attente par min (MAD) *', key: 'waitingCharge', placeholder: 'ex: 1' },
+        { label: 'Tarif minimum (MAD) *', key: 'minimumFare', placeholder: 'ex: 15' },
+      ].map(f => (
+        <div key={f.key}>
+          <label className="text-xs font-700 text-gray-500 mb-1 block">{f.label}</label>
+          <input
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400"
+            value={newCity[f.key as keyof typeof newCity]}
+            onChange={e => setNewCity(p => ({ ...p, [f.key]: e.target.value }))}
+            placeholder={f.placeholder}
+          />
         </div>
+      ))}
+    </div>
+    <div className="flex gap-3 justify-end mt-4">
+      <button onClick={() => setShowAddForm(false)} className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600">
+        Annuler
+      </button>
+      <button onClick={handleAdd} disabled={adding} className="px-6 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-700 disabled:opacity-50">
+        {adding ? 'Ajout...' : '✅ Ajouter'}
+      </button>
+    </div>
+  </div>
+)}
 
         <div className="grid grid-cols-3 gap-6">
           {/* Liste villes */}
