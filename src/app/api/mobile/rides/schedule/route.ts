@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     dropLocation,
     fare,
     userMobileNumber,
-    driverMobileNumber: '',
+    driverMobileNumber: 'TBD',
     paymentMethod: paymentMethod || 'cash',
     paymentDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
     adminCommission: Math.round(fare * 0.1),
