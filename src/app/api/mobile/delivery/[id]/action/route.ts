@@ -59,30 +59,56 @@ export async function POST(
             delivery.paymentStatus = 'paid';
 
             // Débit wallet automatique si paiement par wallet
-            if (delivery.paymentMethod === 'wallet') {
-                const Wallet = (await import('@/models/wallet.model')).default;
-                const clientWallet = await Wallet.findOne({
-                owner: delivery.client,
-                ownerType: 'client',
+            // Commission : 85% driver / 15% admin
+              const driverAmount = Math.round(delivery.totalPrice * 0.85);
+              const adminAmount = delivery.totalPrice - driverAmount;
+
+              const Wallet = (await import('@/models/wallet.model')).default;
+
+              // Crédit driver
+              const driverWallet = await Wallet.findOne({ owner: delivery.deliverer, ownerType: 'partner' });
+              if (driverWallet) {
+                driverWallet.balance += driverAmount;
+                driverWallet.transactions.unshift({
+                  type: 'credit',
+                  amount: driverAmount,
+                  reason: 'earning',
+                  description: `Livraison colis — ${delivery.pickUpAddress} → ${delivery.dropAddress}`,
+                  bookingId: delivery._id,
                 });
-                if (!clientWallet) {
-                return NextResponse.json({ error: 'Wallet client introuvable' }, { status: 404 });
-                }
-                if (clientWallet.balance < delivery.totalPrice) {
-                return NextResponse.json({
-                    error: `Solde insuffisant — ${clientWallet.balance} MAD disponible, ${delivery.totalPrice} MAD requis`,
-                }, { status: 400 });
+                await driverWallet.save();
+              }
+
+              // Crédit admin
+              const adminWallet = await Wallet.findOne({ ownerType: 'admin' });
+              if (adminWallet) {
+                adminWallet.balance += adminAmount;
+                adminWallet.transactions.unshift({
+                  type: 'credit',
+                  amount: adminAmount,
+                  reason: 'commission',
+                  description: `Commission livraison — ${delivery.pickUpAddress} → ${delivery.dropAddress}`,
+                  bookingId: delivery._id,
+                });
+                await adminWallet.save();
+              }
+
+              // Débit wallet client si paiement wallet
+              if (delivery.paymentMethod === 'wallet') {
+                const clientWallet = await Wallet.findOne({ owner: delivery.client, ownerType: 'client' });
+                if (!clientWallet || clientWallet.balance < delivery.totalPrice) {
+                  return NextResponse.json({ error: 'Solde insuffisant' }, { status: 400 });
                 }
                 clientWallet.balance -= delivery.totalPrice;
                 clientWallet.transactions.unshift({
-                type: 'debit',
-                amount: delivery.totalPrice,
-                reason: 'payment',
-                description: `Livraison colis — ${delivery.pickUpAddress} → ${delivery.dropAddress}`,
-                bookingId: delivery._id,
+                  type: 'debit',
+                  amount: delivery.totalPrice,
+                  reason: 'payment',
+                  description: `Livraison colis — ${delivery.pickUpAddress} → ${delivery.dropAddress}`,
+                  bookingId: delivery._id,
                 });
                 await clientWallet.save();
-            }
+              }
             break;
 
       case 'cancel':
