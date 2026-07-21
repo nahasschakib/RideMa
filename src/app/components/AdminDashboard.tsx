@@ -52,11 +52,11 @@ function AdminDashboard() {
       <div className="sticky top-0 bg-white/80 backdrop-blur-lg border-b z-40">
         <div className="max-w-7xl mx-auto h-16 px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#F97316] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#EAB308] flex items-center justify-center">
                <span className="text-white font-black text-lg">M</span>
               </div>
               <span className="font-bold text-lg tracking-wide">
-                  Ma<span className="text-[#F97316]">Ride</span> Admin
+                  Ma<span className="text-[#EAB308]">Ride</span> Admin
                 </span>
            </div>
           

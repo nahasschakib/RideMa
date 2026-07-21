@@ -79,11 +79,11 @@ function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-3 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[#F97316] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#EAB308] flex items-center justify-center">
             <span className="text-white font-black text-xl">M</span>
             </div>
             <p className="text-white font-bold text-2xl tracking-tight">
-             Ma<span className="text-[#F97316]">Ride</span><span className="text-[#F97316]">.</span>
+             Ma<span className="text-[#EAB308]">Ride</span><span className="text-[#EAB308]">.</span>
                 </p>
           </div>
 
