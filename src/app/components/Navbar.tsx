@@ -79,14 +79,12 @@ function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-3 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image
-              src={"/logo1.png"}
-              alt="logo"
-              width={50}
-              height={50}
-              priority
-            />
-            <p className="text-white font-semibold text-4xl">MaRide.</p>
+              <div className="w-10 h-10 rounded-xl bg-[#F97316] flex items-center justify-center">
+            <span className="text-white font-black text-xl">M</span>
+            </div>
+            <p className="text-white font-bold text-2xl tracking-tight">
+             Ma<span className="text-[#F97316]">Ride</span><span className="text-[#F97316]">.</span>
+                </p>
           </div>
 
           <div className="hidden md:flex items-center gap-10">
