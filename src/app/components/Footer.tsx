@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { FaFacebook, FaInstagram } from "react-icons/fa6";
@@ -34,8 +33,13 @@ export default function Footer() {
 
           {/* Colonne 1 — Logo + description */}
           <div>
-            <Link href="/">
-              <Image src="/logo1.png" alt="MaRide" width={120} height={40} className="object-contain" />
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-[#EAB308] flex items-center justify-center">
+                <span className="text-black font-black text-lg">M</span>
+              </div>
+              <span className="text-white font-bold text-xl tracking-tight">
+                Ma<span className="text-[#EAB308]">Ride</span><span className="text-[#EAB308]">.</span>
+              </span>
             </Link>
             <p className="mt-4 text-gray-400 text-sm leading-relaxed">
               Du transport quotidien au transport lourd — tout sur une seule plateforme.
