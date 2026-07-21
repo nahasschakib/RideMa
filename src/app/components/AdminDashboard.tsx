@@ -55,9 +55,9 @@ function AdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-[#EAB308] flex items-center justify-center">
                <span className="text-white font-black text-lg">M</span>
               </div>
-              <span className="font-bold text-lg tracking-wide">
-                  Ma<span className="text-[#EAB308]">Ride</span> Admin
-                </span>
+              <p className="text-white font-bold text-2xl tracking-tight">
+                 Ma<span className="text-[#EAB308]">Ride</span><span className="text-[#EAB308]">.</span>
+              </p>
            </div>
           
            <div className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-black text-white">
